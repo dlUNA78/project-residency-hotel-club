@@ -8,8 +8,8 @@ export const config={
   },
   mysql:{
     host: process.env.PORT || 'localhost',
-    user: process.env.PORT || 'manuel',
-    password: process.env.PORT || 'manuel12',
+    user: process.env.PORT || 'root',
+    password: process.env.PORT || '586226',
     database: process.env.PORT || 'hotel_club'
 
   },

@@ -122,4 +122,4 @@ const seedUsers = async () => {
 };
 
 // 👇 Descomenta si quieres ejecutar el seed automáticamente
-// seedUsers();
+ seedUsers();
