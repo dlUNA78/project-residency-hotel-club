@@ -9,7 +9,7 @@ routerMember.use(authMiddleware);
 
 // Rutas accesibles a TODOS los roles autenticados
 routerMember.get('/', renderMembershipHome);
-routerMember.get('/membershipList', renderMembershipList);
+routerMember.get('/list', renderMembershipList);
 routerMember.get('/create', renderMembershipCreate);
 // Rutas SOLO para Administrador
 routerMember.get('/edit/:id', roleMiddleware('Administrador'), (req, res) => {

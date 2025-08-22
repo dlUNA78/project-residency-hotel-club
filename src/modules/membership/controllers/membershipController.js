@@ -1,7 +1,7 @@
 // Controlador para la vista principal
 export const renderMembershipHome = (req, res) => {
     const userRole = req.session.user?.role || 'Recepcionista';
-    const isAdmin = userRole === 'Administrador'; // 🚨 Debe coincidir EXACTO con lo que guarda tu sesión
+    const isAdmin = userRole === 'Administrador'; 
   
     res.render('membershipHome', {
       title: 'Área de Membresías',
@@ -12,15 +12,24 @@ export const renderMembershipHome = (req, res) => {
   
   // Controlador para listar membresías
   export const renderMembershipList = (req, res) => {
+    const userRole = req.session.user?.role || 'Recepcionista';
+    const isAdmin = userRole === 'Administrador'; 
+
     res.render('membershipList', {
-      title: 'Lista de Membresías'
+      title: 'Lista de Membresías',
+      isAdmin,
+      userRole
     });
   };
 
   //Controlador para crear membresía
   export const renderMembershipCreate = (req, res) => {
+    const userRole = req.session.user?.role || 'Recepcionista';
+    const isAdmin = userRole === 'Administrador'; 
     res.render('membershipCreate', {
-      title: 'Crear Membresía'
+      title: 'Crear Membresía',
+      isAdmin,
+      userRole
     });
   };
   
