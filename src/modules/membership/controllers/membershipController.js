@@ -1,17 +1,32 @@
-// membershipController.js
-export function renderMembershipHome(req, res) {
-    try {
-        // Aquí puedes obtener datos si es necesario
-        res.render('membershipHome', {
-            title: 'Gestión de Membresías',
-            user: req.user // Pasa información del usuario a la vista
-        });
-    } catch (error) {
-        console.error('Error rendering membership home:', error);
-        res.status(500).render('error', { 
-            title: 'Error',
-            message: 'Error al cargar la página de membresías'
-        });
-    }
-}
+// Controlador para la vista principal
+export const renderMembershipHome = (req, res) => {
+    const userRole = req.session.user?.role || 'Recepcionista';
+    const isAdmin = userRole === 'Administrador'; // 🚨 Debe coincidir EXACTO con lo que guarda tu sesión
+  
+    res.render('membershipHome', {
+      title: 'Área de Membresías',
+      isAdmin,
+      userRole
+    });
+  };
+  
+  // Controlador para listar membresías
+  export const renderMembershipList = (req, res) => {
+    res.render('membershipList', {
+      title: 'Lista de Membresías'
+    });
+  };
+
+  //Controlador para crear membresía
+  export const renderMembershipCreate = (req, res) => {
+    res.render('membershipCreate', {
+      title: 'Crear Membresía'
+    });
+  };
+  
+  
+  
+  
+
+
 
