@@ -1,187 +1,122 @@
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Hotel Residencial</title>
-  </head>
-  <body class="min-h-screen bg-gradient-to-b from-blue-50 to-white">
 
-    <!-- HEADER que contiene:
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hotel Residencial</title>
+</head>
+
+<body class="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+
+  <!-- HEADER que contiene:
        - En desktop: logo + enlaces en línea
        - En móvil: logo + botón hamburguesa -->
-    <header class="bg-blue-800 text-white fixed top-0 left-0 w-full z-50">
-      <div class="max-w-7xl mx-auto flex items-center justify-between p-4">
-        <!-- Logo / Título -->
-        <a href="/" class="text-xl font-bold hover:text-blue-300 transition">
-          Hotel Residencial
-        </a>
+  {{>navbar}}
 
-        <!-- Enlaces en desktop (ocultos en móvil) -->
-        <nav>
-          <ul class="hidden sm:flex space-x-6">
-            {{#if (eq role "Administrador")}}
-              <li><a href="/admin" class="hover:text-blue-300 transition">Panel
-                  de Administración</a></li>
-            {{/if}}
-            <li><a
-                href="/rooms"
-                class="hover:text-blue-300 transition"
-              >Habitaciones</a></li>
-            <li><a
-                href="/services"
-                class="hover:text-blue-300 transition"
-              >Servicios</a></li>
-            <li><a href="/logout" class="hover:text-blue-300 transition">Cerrar
-                Sesión</a></li>
-          </ul>
-        </nav>
+  <!-- Sidebar móvil: oculto en desktop (sm:hidden), visible en móvil cuando se activa -->
+  <nav id="sidebar"
+    class="fixed inset-y-0 left-0 w-64 bg-blue-800 text-white transform -translate-x-full transition-transform duration-200 ease-in-out sm:hidden z-40">
+    <!-- Dentro del sidebar -->
+    <div class="flex items-center justify-between px-4 py-4 border-b border-blue-700">
+      <a href="/" class="text-lg font-bold hover:text-blue-300 transition">
+        Hotel Residencial
+      </a>
+      <!-- Botón cerrar en el sidebar -->
+      <button id="btn-close-sidebar" class="focus:outline-none" aria-label="Cerrar menú">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <ul class="flex flex-col px-4 py-6 space-y-4">
+      {{#if (eq role "Administrador")}}
+      <li><a href="/admin" class="block hover:text-blue-300 transition">Panel de Administración</a></li>
+      {{/if}}
+      <li><a href="/rooms" class="block hover:text-blue-300 transition">Habitaciones</a></li>
+      <li><a href="/services" class="block hover:text-blue-300 transition">Servicios</a></li>
+      <li><a href="/logout" class="block hover:text-blue-300 transition">Cerrar Sesión</a></li>
+    </ul>
+  </nav>
 
-        <!-- Botón hamburguesa en móvil -->
-        <button
-          id="btn-open-sidebar"
-          class="sm:hidden focus:outline-none"
-          aria-label="Abrir menú"
-        >
-          <svg
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-      </div>
-    </header>
+  <!-- Overlay semitransparente cuando sidebar está abierto (solo en móvil) -->
+  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 hidden sm:hidden z-30"></div>
 
-    <!-- Sidebar móvil: oculto en desktop (sm:hidden), visible en móvil cuando se activa -->
-    <nav
-      id="sidebar"
-      class="fixed inset-y-0 left-0 w-64 bg-blue-800 text-white transform -translate-x-full transition-transform duration-200 ease-in-out sm:hidden z-40"
-    >
-      <!-- Dentro del sidebar -->
-      <div
-        class="flex items-center justify-between px-4 py-4 border-b border-blue-700"
-      >
-        <a href="/" class="text-lg font-bold hover:text-blue-300 transition">
-          Hotel Residencial
-        </a>
-        <!-- Botón cerrar en el sidebar -->
-        <button
-          id="btn-close-sidebar"
-          class="focus:outline-none"
-          aria-label="Cerrar menú"
-        >
-          <svg
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      </div>
-      <ul class="flex flex-col px-4 py-6 space-y-4">
+  <!-- Contenido principal -->
+  <main class="pt-16 px-4 sm:px-8 max-w-7xl mx-auto">
+    <!-- Padding top (pt-16) para que no quede bajo el header fijo -->
+    <!-- Optional: header interno en desktop -->
+    <section class="hidden sm:block text-center mb-8">
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-blue-800 drop-shadow-md">
+        Bienvenido al Hotel Residencial
+      </h1>
+      <p class="text-base sm:text-lg md:text-xl text-gray-700 mt-2">
+        Hola,
+        {{username}}. Tu rol es:
+        <strong>{{role}}</strong>.
+      </p>
+    </section>
+
+    <!-- Mensajes por rol -->
+    <section class="text-center mb-8">
+      <ul class="space-y-2">
         {{#if (eq role "Administrador")}}
-          <li><a
-              href="/admin"
-              class="block hover:text-blue-300 transition"
-            >Panel de Administración</a></li>
+        <li>
+          <p class="text-sm text-gray-600">Como Administrador, tienes
+            acceso completo al sistema.</p>
+        </li>
         {{/if}}
-        <li><a
-            href="/rooms"
-            class="block hover:text-blue-300 transition"
-          >Habitaciones</a></li>
-        <li><a
-            href="/services"
-            class="block hover:text-blue-300 transition"
-          >Servicios</a></li>
-        <li><a
-            href="/logout"
-            class="block hover:text-blue-300 transition"
-          >Cerrar Sesión</a></li>
+        {{#if (eq role "Usuario")}}
+        <li>
+          <p class="text-sm text-gray-600">Como Recepcionista, puedes
+            gestionar reservas y atender a los clientes.</p>
+        </li>
+        {{/if}}
       </ul>
-    </nav>
+    </section>
 
-    <!-- Overlay semitransparente cuando sidebar está abierto (solo en móvil) -->
-    <div
-      id="overlay"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden sm:hidden z-30"
-    ></div>
+    <!-- Resto del contenido -->
+    <section>
+      <h2 class="text-2xl font-semibold text-blue-700 mb-4">Sección de ejemplo</h2>
+      <p class="text-gray-700">
+        Aquí va el contenido principal de la página. Ajusta según tus
+        necesidades.
+      </p>
+    </section>
+  </main>
 
-    <!-- Contenido principal -->
-    <main class="pt-16 px-4 sm:px-8 max-w-7xl mx-auto">
-      <!-- Padding top (pt-16) para que no quede bajo el header fijo -->
-      <!-- Optional: header interno en desktop -->
-      <section class="hidden sm:block text-center mb-8">
-        <h1
-          class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-blue-800 drop-shadow-md"
-        >
-          Bienvenido al Hotel Residencial
-        </h1>
-        <p class="text-base sm:text-lg md:text-xl text-gray-700 mt-2">
-          Hola,
-          {{username}}. Tu rol es:
-          <strong>{{role}}</strong>.
-        </p>
-      </section>
-
-      <!-- Mensajes por rol -->
-      <section class="text-center mb-8">
-        <ul class="space-y-2">
-          {{#if (eq role "Administrador")}}
-            <li><p class="text-sm text-gray-600">Como Administrador, tienes
-                acceso completo al sistema.</p></li>
-          {{/if}}
-          {{#if (eq role "Usuario")}}
-            <li><p class="text-sm text-gray-600">Como Recepcionista, puedes
-                gestionar reservas y atender a los clientes.</p></li>
-          {{/if}}
-        </ul>
-      </section>
-
-      <!-- Resto del contenido -->
-      <section>
-        <h2 class="text-2xl font-semibold text-blue-700 mb-4">Sección de ejemplo</h2>
-        <p class="text-gray-700">
-          Aquí va el contenido principal de la página. Ajusta según tus
-          necesidades.
-        </p>
-      </section>
-    </main>
-
-    <!-- JavaScript para toggle del sidebar en móvil -->
-    <script>
-      document.addEventListener('DOMContentLoaded', function() { const btnOpen =
-      document.getElementById('btn-open-sidebar'); const btnClose =
-      document.getElementById('btn-close-sidebar'); const sidebar =
-      document.getElementById('sidebar'); const overlay =
-      document.getElementById('overlay'); function openSidebar() {
-      sidebar.classList.remove('-translate-x-full');
-      overlay.classList.remove('hidden'); } function closeSidebar() {
-      sidebar.classList.add('-translate-x-full');
-      overlay.classList.add('hidden'); } btnOpen.addEventListener('click',
-      openSidebar); btnClose.addEventListener('click', closeSidebar);
+  <!-- JavaScript para toggle del sidebar en móvil -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const btnOpen =
+        document.getElementById('btn-open-sidebar'); const btnClose =
+          document.getElementById('btn-close-sidebar'); const sidebar =
+            document.getElementById('sidebar'); const overlay =
+              document.getElementById('overlay'); function openSidebar() {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+              } function closeSidebar() {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+              } btnOpen.addEventListener('click',
+                openSidebar); btnClose.addEventListener('click', closeSidebar);
       overlay.addEventListener('click', closeSidebar); // Al cambiar tamaño: si
       pasa a desktop, nos aseguramos de ocultar sidebar y overlay
-      window.addEventListener('resize', () => { if (window.innerWidth >= 640) {
-      sidebar.classList.add('-translate-x-full');
-      overlay.classList.add('hidden'); } }); // Opcional: cerrar sidebar cuando
-      se clickea un enlace document.querySelectorAll('#sidebar a').forEach(a =>
-      { a.addEventListener('click', () => { if (window.innerWidth < 640) {
-      closeSidebar(); } }); }); });
-    </script>
+      window.addEventListener('resize', () => {
+        if (window.innerWidth >= 640) {
+          sidebar.classList.add('-translate-x-full');
+          overlay.classList.add('hidden');
+        }
+      }); // Opcional: cerrar sidebar cuando
+      se clickea un enlace document.querySelectorAll('#sidebar a').forEach(a => {
+        a.addEventListener('click', () => {
+          if (window.innerWidth < 640) {
+            closeSidebar();
+          }
+        });
+      });
+    });
+  </script>
 
-  </body>
+</body>
+
 </html>

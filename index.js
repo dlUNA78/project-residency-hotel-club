@@ -8,6 +8,7 @@ import {app} from './src/config/app.js'
 import homeRoutes from './src/modules/login/routers/homeRoutes.js'
 import passwordRecoveryRoutes from './src/modules/login/routers/passwordRecoveryRoutes.js';
 import {routerMember} from './src/modules/membership/routes/membershipRoutes.js';
+
 //import {routerRoom} from './src/modules/rooms/routes/RouteRooms.js';
 
 // Configuración de variables para __dirname en módulos ES

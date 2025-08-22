@@ -1,0 +1,33 @@
+<header class="bg-blue-800 text-white fixed top-0 left-0 w-full z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between p-4">
+      <!-- Logo / Título -->
+      <a href="/" class="text-xl font-bold hover:text-blue-300 transition">
+        Hotel Residencial
+      </a>
+
+      <!-- Enlaces en desktop (ocultos en móvil) -->
+      <nav>
+        <ul class="hidden sm:flex space-x-6">
+          {{#if (eq role "Administrador")}}
+          <li><a href="/admin" class="hover:text-blue-300 transition">Panel
+              de Administración</a></li>
+          {{/if}}
+          <li><a href="/rooms" class="hover:text-blue-300 transition">Habitaciones</a></li>
+
+
+          <li><a href="/memberships" class="hover:text-green-200">Membresías</a></li>
+
+          <li><a href="/services" class="hover:text-blue-300 transition">Servicios</a></li>
+          <li><a href="/logout" class="hover:text-blue-300 transition">Cerrar
+              Sesión</a></li>
+        </ul>
+      </nav>
+
+      <!-- Botón hamburguesa en móvil -->
+      <button id="btn-open-sidebar" class="sm:hidden focus:outline-none" aria-label="Abrir menú">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+  </header>

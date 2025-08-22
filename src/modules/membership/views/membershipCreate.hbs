@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Nueva Membresía</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .membership-card {
+            transition: all 0.3s ease;
+        }
+        .membership-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navbar (partial) -->
+    
+
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-gray-800 mb-3">
+                <i class="fas fa-id-card-alt text-blue-500 mr-2"></i>Crear Nueva Membresía
+            </h1>
+            <p class="text-gray-600">Complete la información requerida para registrar una nueva membresía</p>
+        </div>
+
+        <!-- Alertas de validación -->
+        {{#if error}}
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded" role="alert">
+            <p>{{error}}</p>
+        </div>
+        {{/if}}
+
+        {{#if success}}
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded" role="alert">
+            <p>{{success}}</p>
+        </div>
+        {{/if}}
+
+        <form action="/memberships/create" method="POST" class="bg-white rounded-xl shadow-md p-6 md:p-8">
+            <!-- Selección de tipo de membresía -->
+            <div class="mb-8">
+                <label class="block text-gray-700 text-sm font-bold mb-3">Tipo de Membresía</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="membership-card">
+                        <input type="radio" id="individual" name="membershipType" value="individual" class="hidden peer" 
+                               onchange="toggleMembershipType()" {{#if formData.membershipType}}{{#eq formData.membershipType 'individual'}}checked{{/eq}}{{else}}checked{{/if}}>
+                        <label for="individual" class="flex flex-col p-5 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-user text-blue-500 text-xl mr-3"></i>
+                                <h3 class="font-bold text-gray-800">Membresía Individual</h3>
+                            </div>
+                            <p class="text-sm text-gray-600">Para una sola persona</p>
+                        </label>
+                    </div>
+                    
+                    <div class="membership-card">
+                        <input type="radio" id="familiar" name="membershipType" value="familiar" class="hidden peer" 
+                               onchange="toggleMembershipType()" {{#if formData.membershipType}}{{#eq formData.membershipType 'familiar'}}checked{{/eq}}{{/if}}>
+                        <label for="familiar" class="flex flex-col p-5 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-users text-green-500 text-xl mr-3"></i>
+                                <h3 class="font-bold text-gray-800">Membresía Familiar</h3>
+                            </div>
+                            <p class="text-sm text-gray-600">Para hasta 5 personas</p>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información del titular -->
+            <div class="mb-8 fade-in">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">
+                    <i class="fas fa-user-circle text-blue-500 mr-2"></i>Información del Titular
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="fullName" class="block text-gray-700 text-sm font-bold mb-2">Nombre completo *</label>
+                        <input type="text" id="fullName" name="fullName" value="{{formData.fullName}}" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    
+                    <div>
+                        <label for="phone" class="block text-gray-700 text-sm font-bold mb-2">Teléfono *</label>
+                        <input type="tel" id="phone" name="phone" value="{{formData.phone}}" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    
+                    <div>
+                        <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Correo electrónico</label>
+                        <input type="email" id="email" name="email" value="{{formData.email}}" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fechas de membresía -->
+            <div class="mb-8 fade-in">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">
+                    <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>Fechas de Membresía
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="startDate" class="block text-gray-700 text-sm font-bold mb-2">Fecha de inicio *</label>
+                        <input type="date" id="startDate" name="startDate" value="{{formData.startDate}}" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    
+                    <div>
+                        <label for="endDate" class="block text-gray-700 text-sm font-bold mb-2">Fecha de finalización *</label>
+                        <input type="date" id="endDate" name="endDate" value="{{formData.endDate}}" 
+                               class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tipo de membresía y precio -->
+            <div class="mb-8 fade-in" id="membershipTypeSection">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Tipo y Precio de Membresía
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="membershipOption" class="block text-gray-700 text-sm font-bold mb-2">Tipo de membresía *</label>
+                        <select id="membershipOption" name="membershipOption" 
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="calculatePrice()" required>
+                            <option value="">Seleccione una opción</option>
+                            <option value="gym" {{#if formData.membershipOption}}{{#eq formData.membershipOption 'gym'}}selected{{/eq}}{{/if}}>Gym ($400)</option>
+                            <option value="pool" {{#if formData.membershipOption}}{{#eq formData.membershipOption 'pool'}}selected{{/eq}}{{/if}}>Alberca ($400)</option>
+                            <option value="general" {{#if formData.membershipOption}}{{#eq formData.membershipOption 'general'}}selected{{/eq}}{{/if}}>General ($600)</option>
+                            <option value="family" id="familyOption" style="display: none;">Familiar ($1500)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="amount" class="block text-gray-700 text-sm font-bold mb-2">Precio</label>
+                        <div class="flex items-center">
+                            <span class="text-2xl font-bold text-blue-600">$</span>
+                            <input type="text" id="amount" name="amount" value="{{formData.amount}}" 
+                                   class="w-full px-4 py-2 border-0 rounded-lg text-2xl font-bold text-blue-600" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descuento (solo admin) -->
+                {{#if isAdmin}}
+                <div class="mt-6 fade-in">
+                    <label for="discount" class="block text-gray-700 text-sm font-bold mb-2">Descuento (solo administrador)</label>
+                    <div class="flex items-center">
+                        <input type="number" id="discount" name="discount" value="{{formData.discount}}" min="0" 
+                               class="w-24 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0" onchange="calculatePrice()">
+                        <span class="ml-2 text-gray-700">%</span>
+                        <button type="button" onclick="calculatePrice()" class="ml-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Aplicar</button>
+                    </div>
+                </div>
+                {{/if}}
+            </div>
+
+            <!-- Miembros familiares (solo para membresía familiar) -->
+            <div class="mb-8 fade-in" id="familyMembersSection" style="display: none;">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">
+                    <i class="fas fa-users text-green-500 mr-2"></i>Miembros Familiares (Máximo 4)
+                </h2>
+                
+                <div id="familyMembers">
+                    <div class="family-member bg-gray-50 p-4 rounded-lg mb-4">
+                        <h3 class="font-semibold text-gray-700 mb-3">Miembro 1</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Nombre completo *</label>
+                                <input type="text" name="familyMemberName[]" 
+                                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Teléfono</label>
+                                <input type="tel" name="familyMemberPhone[]" 
+                                       class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="button" id="addMemberBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+                    <i class="fas fa-plus mr-2"></i>Agregar Miembro
+                </button>
+            </div>
+
+            <!-- Tipo de pago -->
+            <div class="mb-8 fade-in">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 border-b pb-2">
+                    <i class="fas fa-credit-card text-blue-500 mr-2"></i>Tipo de Pago
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <input type="radio" id="cash" name="paymentType" value="cash" class="hidden peer" {{#if formData.paymentType}}{{#eq formData.paymentType 'cash'}}checked{{/eq}}{{else}}checked{{/if}}>
+                        <label for="cash" class="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50">
+                            <i class="fas fa-money-bill-wave text-green-500 text-2xl mb-2"></i>
+                            <span class="font-semibold">Efectivo</span>
+                        </label>
+                    </div>
+                    
+                    <div>
+                        <input type="radio" id="card" name="paymentType" value="card" class="hidden peer" {{#if formData.paymentType}}{{#eq formData.paymentType 'card'}}checked{{/eq}}{{/if}}>
+                        <label for="card" class="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50">
+                            <i class="fas fa-credit-card text-blue-500 text-2xl mb-2"></i>
+                            <span class="font-semibold">Tarjeta</span>
+                        </label>
+                    </div>
+                    
+                    <div>
+                        <input type="radio" id="transfer" name="paymentType" value="transfer" class="hidden peer" {{#if formData.paymentType}}{{#eq formData.paymentType 'transfer'}}checked{{/eq}}{{/if}}>
+                        <label for="transfer" class="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50">
+                            <i class="fas fa-exchange-alt text-purple-500 text-2xl mb-2"></i>
+                            <span class="font-semibold">Transferencia</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="flex justify-between mt-10">
+                <a href="/memberships" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600">
+                    <i class="fas fa-arrow-left mr-2"></i>Cancelar
+                </a>
+                <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-save mr-2"></i>Guardar Membresía
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Footer (partial) -->
+    
+
+    <script>
+        // Mostrar/ocultar secciones según tipo de membresía
+        function toggleMembershipType() {
+            const individual = document.getElementById('individual').checked;
+            const familySection = document.getElementById('familyMembersSection');
+            const familyOption = document.getElementById('familyOption');
+            
+            if (individual) {
+                familySection.style.display = 'none';
+                familyOption.style.display = 'none';
+                // Resetear selección si estaba en familiar
+                if (document.getElementById('membershipOption').value === 'family') {
+                    document.getElementById('membershipOption').value = '';
+                }
+            } else {
+                familySection.style.display = 'block';
+                familyOption.style.display = 'block';
+                document.getElementById('membershipOption').value = 'family';
+            }
+            
+            calculatePrice();
+        }
+
+        // Calcular precio según tipo de membresía y descuento
+        function calculatePrice() {
+            const membershipOption = document.getElementById('membershipOption').value;
+            const discount = document.getElementById('discount') ? document.getElementById('discount').value : 0;
+            let price = 0;
+            
+            switch(membershipOption) {
+                case 'gym':
+                case 'pool':
+                    price = 400;
+                    break;
+                case 'general':
+                    price = 600;
+                    break;
+                case 'family':
+                    price = 1500;
+                    break;
+                default:
+                    price = 0;
+            }
+            
+            // Aplicar descuento si es administrador
+            if (discount > 0) {
+                price = price - (price * (discount / 100));
+            }
+            
+            document.getElementById('amount').value = price.toFixed(2);
+        }
+
+        // Agregar miembros familiares
+        document.getElementById('addMemberBtn').addEventListener('click', function() {
+            const membersContainer = document.getElementById('familyMembers');
+            const memberCount = membersContainer.children.length;
+            
+            if (memberCount < 4) {
+                const newMember = document.createElement('div');
+                newMember.className = 'family-member bg-gray-50 p-4 rounded-lg mb-4 fade-in';
+                newMember.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-gray-700">Miembro ${memberCount + 1}</h3>
+                        <button type="button" class="text-red-500 hover:text-red-700 remove-member">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Nombre completo *</label>
+                            <input type="text" name="familyMemberName[]" 
+                                   class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Teléfono</label>
+                            <input type="tel" name="familyMemberPhone[]" 
+                                   class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                `;
+                
+                membersContainer.appendChild(newMember);
+                
+                // Agregar evento al botón de eliminar
+                newMember.querySelector('.remove-member').addEventListener('click', function() {
+                    newMember.remove();
+                    updateMemberNumbers();
+                });
+                
+                // Si llegamos al máximo, ocultar el botón de agregar
+                if (memberCount + 1 >= 4) {
+                    document.getElementById('addMemberBtn').style.display = 'none';
+                }
+            }
+        });
+
+        // Actualizar números de miembros
+        function updateMemberNumbers() {
+            const members = document.querySelectorAll('.family-member');
+            members.forEach((member, index) => {
+                member.querySelector('h3').textContent = `Miembro ${index + 1}`;
+            });
+            
+            // Mostrar botón de agregar si no hemos llegado al máximo
+            if (members.length < 4) {
+                document.getElementById('addMemberBtn').style.display = 'block';
+            }
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleMembershipType();
+            
+            // Agregar eventos a los botones de eliminar miembros existentes
+            document.querySelectorAll('.remove-member').forEach(button => {
+                button.addEventListener('click', function() {
+                    this.closest('.family-member').remove();
+                    updateMemberNumbers();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
