@@ -5,12 +5,11 @@ import express from "express";
 import { authMiddleware } from "../../login/middlewares/accessDenied.js";
 import {
   renderMembershipHome,
-  renderMembershipCreate,
   renderEditMembership,
   renderRenewMembership,
 } from "../controllers/membershipController.js";
 import { reportsController } from "../controllers/reportsController.js";
-import { MembershipController } from "../controllers/createMemberController.js";
+import { MembershipCreationController } from "../controllers/membershipCreation.controller.js";
 import { listMembershipController } from "../controllers/listMemberController.js";
 import { editMemberController } from "../controllers/editMemberController.js";
 import { deleteMemberController } from "../controllers/deleteMemberController.js";
@@ -46,18 +45,11 @@ routerMembership.get('/api/qr/:id_activa', async (req, res) => {
   }
 });
 
-// Ruta para descargar el QR
-routerMembership.get('/download-qr/:id_activa', MembershipController.downloadQR);
-
 // Vistas
 routerMembership.get("/", renderMembershipHome);
-routerMembership.get("/createMembership", renderMembershipCreate);
+routerMembership.get("/create", MembershipCreationController.renderCreationPage);
 routerMembership.get("/editMembership/:id", renderEditMembership);
 routerMembership.get("/renew/:id", renderRenewMembership);
-routerMembership.get(
-  "/createMembership/tipos",
-  bind(MembershipController, "renderTiposMembresia")
-);
 routerMembership.get("/reports", bind(reportsController, "renderReports"));
 
 // Acciones CRUD
@@ -65,14 +57,8 @@ routerMembership.get(
   "/listMembership",
   bind(listMembershipController, "renderMembershipList")
 );
-routerMembership.post(
-  "/createClient",
-  bind(MembershipController, "createClient")
-);
-routerMembership.post(
-  "/createMembership",
-  bind(MembershipController, "createMembership")
-);
+routerMembership.post("/client", MembershipCreationController.handleClientCreation);
+routerMembership.post("/membership", MembershipCreationController.handleMembershipCreation);
 routerMembership.get('/editMembership/:id', editMemberController.editMembership);
 routerMembership.post('/updateMembership/:id', editMemberController.updateMembership);
 routerMembership.post("/renew/:id", editMemberController.renewMembership);
