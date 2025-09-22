@@ -1,76 +1,36 @@
-// ===============================
-// RUTAS DE VISTAS DE MEMBRESÍAS
-// ===============================
 import express from "express";
 import { authMiddleware } from "../../login/middlewares/accessDenied.js";
-import {
-  renderMembershipHome,
-  renderEditMembership,
-  renderRenewMembership,
-} from "../controllers/membershipController.js";
-import { reportsController } from "../controllers/reportsController.js";
+import { MembershipViewsController } from "../controllers/membershipController.js";
 import { MembershipCreationController } from "../controllers/membershipCreation.controller.js";
-import { listMembershipController } from "../controllers/listMemberController.js";
-import { editMemberController } from "../controllers/editMemberController.js";
-import { deleteMemberController } from "../controllers/deleteMemberController.js";
+import { MembershipListController } from "../controllers/membershipList.controller.js";
+import { MembershipEditController } from "../controllers/membershipEdit.controller.js";
+import { MembershipDeleteController } from "../controllers/membershipDelete.controller.js";
+import { MembershipReportsController } from "../controllers/membershipReports.controller.js";
 
-const routerMembership = express.Router();
+const router = express.Router();
+router.use(authMiddleware);
 
-// Middleware global
-routerMembership.use(authMiddleware);
+// === Page-Rendering Routes (GET) ===
+router.get("/", MembershipViewsController.renderHomePage);
+router.get("/list", MembershipListController.renderListPage);
+router.get("/create", MembershipCreationController.renderCreationPage);
+router.get("/edit/:id", MembershipEditController.renderEditPage);
+router.get("/renew/:id", MembershipEditController.renderRenewalPage);
+router.get("/reports", MembershipReportsController.renderReportsPage);
 
-// Helper para bind
-const bind = (controller, method) => controller[method].bind(controller);
+// === Form Action Routes (POST, DELETE) ===
+router.post("/client", MembershipCreationController.handleClientCreation);
+router.post("/membership", MembershipCreationController.handleMembershipCreation);
+router.post("/edit/:id", MembershipEditController.handleUpdate);
+router.post("/renew/:id", MembershipEditController.handleRenewal);
+router.delete("/:id", MembershipDeleteController.handleDelete);
 
-// Ruta para servir la imagen QR
-routerMembership.get('/api/qr/:id_activa', async (req, res) => {
-  try {
-    const { id_activa } = req.params;
-    const membresia = await MembershipModel.getMembresiaById(id_activa);
-    
-    if (!membresia || !membresia.qr_path) {
-      return res.status(404).json({ error: "QR no encontrado" });
-    }
+// === API Routes (for client-side fetching) ===
+router.get("/api/memberships", MembershipListController.getMembershipsApi);
+router.get("/api/stats", MembershipListController.getStatsApi);
+router.get("/api/members/:id", MembershipListController.getFamilyMembersApi);
 
-    if (!fs.existsSync(membresia.qr_path)) {
-      return res.status(404).json({ error: "Archivo QR no encontrado" });
-    }
+// === PDF Download Route ===
+router.get("/download/report", MembershipReportsController.downloadReportPdf);
 
-    // Servir el archivo directamente
-    res.sendFile(path.resolve(membresia.qr_path));
-    
-  } catch (error) {
-    console.error("Error al servir QR:", error);
-    res.status(500).json({ error: "Error al obtener el QR" });
-  }
-});
-
-// Vistas
-routerMembership.get("/", renderMembershipHome);
-routerMembership.get("/create", MembershipCreationController.renderCreationPage);
-routerMembership.get("/editMembership/:id", renderEditMembership);
-routerMembership.get("/renew/:id", renderRenewMembership);
-routerMembership.get("/reports", bind(reportsController, "renderReports"));
-
-// Acciones CRUD
-routerMembership.get(
-  "/listMembership",
-  bind(listMembershipController, "renderMembershipList")
-);
-routerMembership.post("/client", MembershipCreationController.handleClientCreation);
-routerMembership.post("/membership", MembershipCreationController.handleMembershipCreation);
-routerMembership.get('/editMembership/:id', editMemberController.editMembership);
-routerMembership.post('/updateMembership/:id', editMemberController.updateMembership);
-routerMembership.post("/renew/:id", editMemberController.renewMembership);
-routerMembership.delete("/delete/:id", deleteMemberController.deleteMembership);
-
-
-// Ruta con verificación de método existente
-routerMembership.get("/tipos_membresia/:id", (req, res) => {
-  if (MembershipController.getTipoMembresiaById) {
-    return MembershipController.getTipoMembresiaById(req, res);
-  }
-  res.status(501).json({ error: "Not implemented" });
-});
-
-export { routerMembership as membershipRoutes };
+export { router as membershipRoutes };

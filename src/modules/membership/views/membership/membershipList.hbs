@@ -1,0 +1,91 @@
+<title>{{title}}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<body class="bg-gray-50 min-h-screen">
+    {{>navbar}}
+
+    <div class="container mx-auto px-4 py-6 mt-20">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+            <div><h1 class="text-3xl font-bold text-gray-800">{{title}}</h1></div>
+            <div class="flex flex-wrap gap-3 mt-4 md:mt-0">
+                <a href="/memberships/create" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center transition-colors">
+                    <i class="fas fa-plus-circle mr-2"></i> New Membership
+                </a>
+                {{#if isAdmin}}
+                <a href="/memberships/reports" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center transition-colors">
+                    <i class="fas fa-chart-line mr-2"></i> Generate Reports
+                </a>
+                {{/if}}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md"><p class="text-gray-600">Total Memberships</p><h3 class="text-3xl font-bold">{{stats.total}}</h3></div>
+            <div class="bg-white p-6 rounded-lg shadow-md"><p class="text-gray-600">Active</p><h3 class="text-3xl font-bold">{{stats.active}}</h3></div>
+            <div class="bg-white p-6 rounded-lg shadow-md"><p class="text-gray-600">Expiring Soon</p><h3 class="text-3xl font-bold">{{stats.expiring}}</h3></div>
+            <div class="bg-white p-6 rounded-lg shadow-md"><p class="text-gray-600">Expired</p><h3 class="text-3xl font-bold">{{stats.expired}}</h3></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <form id="filters-form" class="flex flex-col md:flex-row gap-4 items-center">
+                <input type="text" id="search-input" name="search" placeholder="Search by name, phone, email..." class="flex-grow p-2 border rounded" value="{{currentSearch}}">
+                <select name="status" class="p-2 border rounded">
+                    <option value="">All Statuses</option>
+                    <option value="Active" {{#if (eq currentStatus 'Active')}}selected{{/if}}>Active</option>
+                    <option value="Expiring" {{#if (eq currentStatus 'Expiring')}}selected{{/if}}>Expiring</option>
+                    <option value="Expired" {{#if (eq currentStatus 'Expired')}}selected{{/if}}>Expired</option>
+                </select>
+                <select name="type" class="p-2 border rounded">
+                    <option value="">All Types</option>
+                    <option value="Individual" {{#if (eq currentType 'Individual')}}selected{{/if}}>Individual</option>
+                    <option value="Family" {{#if (eq currentType 'Family')}}selected{{/if}}>Family</option>
+                </select>
+                <button type="submit" class="bg-blue-500 text-white p-2 rounded">Filter</button>
+                <a href="/memberships/list" class="text-gray-500 hover:text-gray-700">Clear</a>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+            <table class="min-w-full">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-4 text-left">Member</th>
+                        <th class="p-4 text-left">Type</th>
+                        <th class="p-4 text-left">Dates</th>
+                        <th class="p-4 text-left">Status</th>
+                        <th class="p-4 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#each memberships}}
+                    <tr class="border-b">
+                        <td class="p-4">{{this.clientName}}</td>
+                        <td class="p-4">{{this.membershipTypeName}}</td>
+                        <td class="p-4">{{this.startDate}} - {{this.endDate}}</td>
+                        <td class="p-4">{{this.statusType}} ({{this.remainingDays}} days)</td>
+                        <td class="p-4">
+                            <a href="/memberships/edit/{{this.activeMembershipId}}" class="text-blue-500 hover:underline">Edit</a>
+                            <a href="/memberships/renew/{{this.activeMembershipId}}" class="text-green-500 hover:underline ml-2">Renew</a>
+                            <button class="delete-btn text-red-500 hover:underline ml-2" data-id="{{this.activeMembershipId}}">Delete</button>
+                        </td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-1/3">
+            <h3 class="text-xl font-semibold mb-4">Confirm Deletion</h3>
+            <p class="mb-6">Are you sure you want to delete this membership? This action cannot be undone.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-delete-btn" class="px-4 py-2 border rounded">Cancel</button>
+                <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/membership/listHandler.js"></script>
+</body>

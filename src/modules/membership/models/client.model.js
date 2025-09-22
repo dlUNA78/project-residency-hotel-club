@@ -45,4 +45,31 @@ export class ClientModel {
     );
     return rows[0] || null;
   }
+
+  /**
+   * Updates a client's data in the database.
+   * @param {object} clientData - The data to update.
+   * @param {number} clientData.clientId - The ID of the client to update.
+   * @param {string} clientData.fullName - The client's full name.
+   * @param {string} clientData.phone - The client's phone number.
+   * @param {string} clientData.email - The client's email address.
+   * @returns {Promise<boolean>} True if the update was successful.
+   */
+  static async update({ clientId, fullName, phone, email }) {
+    try {
+      const [result] = await pool.query(
+        `UPDATE clientes SET nombre_completo = ?, telefono = ?, correo = ?
+         WHERE id_cliente = ?`,
+        [fullName, phone, email, clientId]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error("Error in ClientModel.update:", error);
+      throw error;
+    }
+  }
+
+  static async deleteById(id, connection = pool) {
+    await connection.query("DELETE FROM clientes WHERE id_cliente = ?", [id]);
+  }
 }

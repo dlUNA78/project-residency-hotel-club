@@ -163,4 +163,134 @@ export class MembershipService {
       }
     }
   }
+
+  static async updateCompleteMembership(activeMembershipId, data) {
+    // Note: The original code used a transaction here. Refactoring to use the connection pool's transaction support.
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 1. Update client
+      await ClientModel.update({
+        clientId: data.clientId,
+        fullName: data.clientData.fullName,
+        phone: data.clientData.phone,
+        email: data.clientData.email,
+      });
+
+      // 2. Update membership
+      await MembershipModel.update(activeMembershipId, data.membershipData);
+
+      // 3. Rebuild family members
+      if (data.familyMembers) {
+        await MembershipModel.rebuildFamilyMembers(activeMembershipId, data.familyMembers);
+      }
+
+      await connection.commit();
+      return true;
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error in updateCompleteMembership service:", error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  static async renewMembership(oldMembershipId, renewalData) {
+      const connection = await pool.getConnection();
+      try {
+        await connection.beginTransaction();
+
+        // 1. Update client data
+        await ClientModel.update({
+            clientId: renewalData.clientId,
+            fullName: renewalData.clientName,
+            phone: renewalData.clientPhone,
+            email: renewalData.clientEmail
+        });
+
+        // 2. Deactivate old membership
+        await MembershipModel.updateStatus(oldMembershipId, 'Expired');
+
+        // 3. Create new membership contract
+        const newContractId = await MembershipModel.createContract({
+            clientId: renewalData.clientId,
+            membershipTypeId: renewalData.membershipTypeId,
+            startDate: renewalData.startDate,
+            endDate: renewalData.endDate,
+        });
+
+        // 4. Activate new membership
+        const membershipType = await MembershipModel.findTypeById(renewalData.membershipTypeId);
+        const finalPrice = membershipType.price;
+
+        const newActiveId = await MembershipModel.activate({
+            clientId: renewalData.clientId,
+            membershipId: newContractId,
+            startDate: renewalData.startDate,
+            endDate: renewalData.endDate,
+            finalPrice: finalPrice,
+        });
+
+        // 5. Record payment
+        await PaymentModel.create({
+            activeMembershipId: newActiveId,
+            paymentMethodId: renewalData.paymentMethodId,
+            amount: finalPrice,
+        });
+
+        await connection.commit();
+        return { newActiveId };
+
+      } catch (error) {
+        await connection.rollback();
+        console.error("Error in renewMembership service:", error);
+        throw error;
+      } finally {
+        connection.release();
+      }
+  }
+
+  static async deleteCompleteMembership(activeMembershipId) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const membership = await MembershipModel.findById(activeMembershipId);
+      if (!membership) {
+        throw new Error("Membership not found");
+      }
+
+      // 1. Delete payments
+      await PaymentModel.deleteByActiveMembershipId(activeMembershipId, connection);
+
+      // 2. Delete family members
+      await MembershipModel.deleteFamilyMembersByActiveId(activeMembershipId, connection);
+
+      // 3. Delete active membership and get contract ID
+      const { contractId } = await MembershipModel.deleteActiveById(activeMembershipId, connection);
+
+      // 4. Delete base membership contract
+      if (contractId) {
+        await MembershipModel.deleteContractById(contractId, connection);
+      }
+
+      // 5. Check for other memberships and delete client if they have no more
+      const otherMembershipsCount = await MembershipModel.countActiveByClientId(membership.clientId, connection);
+      if (otherMembershipsCount === 0) {
+        await ClientModel.deleteById(membership.clientId, connection);
+      }
+
+      await connection.commit();
+      return { success: true };
+
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error in deleteCompleteMembership service:", error);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
 }

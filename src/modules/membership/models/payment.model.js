@@ -27,4 +27,31 @@ export class PaymentModel {
       throw error;
     }
   }
+
+  /**
+   * Finds all payments associated with a given active membership ID.
+   * @param {number} activeMembershipId - The active membership ID.
+   * @returns {Promise<Array<object>>} A list of payment records.
+   */
+  static async findByMembershipId(activeMembershipId) {
+    const [rows] = await pool.query(
+      `
+      SELECT p.id_pago as paymentId,
+             p.fecha_pago as paymentDate,
+             p.monto as amount,
+             mp.nombre as paymentMethod
+      FROM pagos p
+      JOIN metodos_pago mp ON mp.id_metodo_pago = p.id_metodo_pago
+      WHERE p.id_activa = ?
+      ORDER BY p.fecha_pago DESC
+    `,
+      [activeMembershipId]
+    );
+
+    return rows;
+  }
+
+  static async deleteByActiveMembershipId(activeMembershipId, connection = pool) {
+    await connection.query("DELETE FROM pagos WHERE id_activa = ?", [activeMembershipId]);
+  }
 }
