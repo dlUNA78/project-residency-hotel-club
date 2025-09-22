@@ -1,6 +1,6 @@
 import express from "express";
 import { authMiddleware } from "../../login/middlewares/accessDenied.js";
-import { MembershipViewsController } from "../controllers/membershipController.js";
+import { MembershipViewsController } from "../controllers/membershipViews.controller.js";
 import { MembershipCreationController } from "../controllers/membershipCreation.controller.js";
 import { MembershipListController } from "../controllers/membershipList.controller.js";
 import { MembershipEditController } from "../controllers/membershipEdit.controller.js";
@@ -24,11 +24,6 @@ router.post("/membership", MembershipCreationController.handleMembershipCreation
 router.post("/edit/:id", MembershipEditController.handleUpdate);
 router.post("/renew/:id", MembershipEditController.handleRenewal);
 router.delete("/:id", MembershipDeleteController.handleDelete);
-
-// === API Routes (for client-side fetching) ===
-router.get("/api/memberships", MembershipListController.getMembershipsApi);
-router.get("/api/stats", MembershipListController.getStatsApi);
-router.get("/api/members/:id", MembershipListController.getFamilyMembersApi);
 
 // === PDF Download Route ===
 router.get("/download/report", MembershipReportsController.downloadReportPdf);

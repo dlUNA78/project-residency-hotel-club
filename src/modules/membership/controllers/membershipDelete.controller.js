@@ -1,6 +1,9 @@
 import { MembershipService } from "../services/membership.service.js";
 
 export class MembershipDeleteController {
+  /**
+   * Maneja la eliminación de una membresía.
+   */
   static async handleDelete(req, res) {
     try {
       const { id } = req.params;

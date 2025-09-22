@@ -2,12 +2,9 @@ import { ClientModel } from "../models/client.model.js";
 
 export class ClientService {
   /**
-   * Creates a new client.
-   * @param {object} clientData - The data for the new client.
-   * @param {string} clientData.fullName - The client's full name.
-   * @param {string} clientData.email - The client's email address.
-   * @param {string} clientData.phone - The client's phone number.
-   * @returns {Promise<{clientId: number}>} An object containing the new client's ID.
+   * Orquesta la creación de un nuevo cliente.
+   * @param {object} clientData - Datos del cliente.
+   * @returns {Promise<{clientId: number}>} El ID del nuevo cliente.
    */
   static async create(clientData) {
     const { fullName, email, phone } = clientData;
@@ -19,7 +16,7 @@ export class ClientService {
     });
 
     if (!clientId) {
-      throw new Error("Failed to get a valid client ID.");
+      throw new Error("No se pudo obtener un ID de cliente válido.");
     }
 
     return { clientId };

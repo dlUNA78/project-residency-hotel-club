@@ -4,6 +4,11 @@ class DeleteModal {
         this.confirmBtn = document.getElementById(confirmId);
         this.cancelBtn = document.getElementById(cancelId);
         this.deleteId = null;
+
+        if (!this.modal || !this.confirmBtn || !this.cancelBtn) {
+            console.error("Delete modal elements not found");
+            return;
+        }
         this.bindEvents();
     }
 
@@ -24,12 +29,10 @@ class DeleteModal {
 
     show() {
         this.modal.classList.remove('hidden');
-        this.modal.classList.add('flex');
     }
 
     hide() {
         this.modal.classList.add('hidden');
-        this.modal.classList.remove('flex');
     }
 
     async confirm() {
@@ -39,13 +42,8 @@ class DeleteModal {
             const response = await fetch(`/memberships/${this.deleteId}`, {
                 method: 'DELETE',
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to delete membership.');
-            }
-
+            if (!response.ok) throw new Error('Failed to delete membership.');
             window.location.reload();
-
         } catch (error) {
             console.error('Deletion failed:', error);
             alert('Could not delete the membership.');
@@ -56,14 +54,16 @@ class DeleteModal {
 class FilterHandler {
     constructor(formId) {
         this.form = document.getElementById(formId);
+        if (!this.form) {
+            console.error("Filter form not found");
+            return;
+        }
         this.bindEvents();
     }
 
     bindEvents() {
-        this.form.addEventListener('submit', (e) => {
-            // The form submission will reload the page with query params, which is what we want.
-            // No need for preventDefault() or custom fetch logic here.
-        });
+        // The form submission reloads the page with query params, which is the desired behavior.
+        // No custom JS needed for submission, but you could add it here for AJAX-based filtering.
     }
 }
 

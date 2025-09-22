@@ -2,13 +2,8 @@ import { pool } from "../../../dataBase/conecctionDataBase.js";
 
 export class MembershipModel {
   /**
-   * Creates a membership contract.
-   * @param {object} data - The membership data.
-   * @param {number} data.clientId - The client's ID.
-   * @param {number} data.membershipTypeId - The membership type ID.
-   * @param {string} data.startDate - The start date.
-   * @param {string} data.endDate - The end date.
-   * @returns {Promise<number>} The ID of the new membership contract.
+   * Crea un nuevo contrato de membresía.
+   * @returns {Promise<number>} El ID del contrato de membresía creado.
    */
   static async createContract({ clientId, membershipTypeId, startDate, endDate }) {
     const [result] = await pool.query(
@@ -20,14 +15,8 @@ export class MembershipModel {
   }
 
   /**
-   * Activates a membership.
-   * @param {object} data - The activation data.
-   * @param {number} data.clientId - The client's ID.
-   * @param {number} data.membershipId - The membership contract ID.
-   * @param {string} data.startDate - The start date.
-   * @param {string} data.endDate - The end date.
-   * @param {number} data.finalPrice - The final price.
-   * @returns {Promise<number>} The ID of the active membership.
+   * Activa una membresía, creando un registro en la tabla `membresias_activas`.
+   * @returns {Promise<number>} El ID de la membresía activa.
    */
   static async activate({ clientId, membershipId, startDate, endDate, finalPrice }) {
     const [result] = await pool.query(
@@ -39,10 +28,8 @@ export class MembershipModel {
   }
 
   /**
-   * Updates the QR code path for an active membership.
-   * @param {number} activeMembershipId - The active membership ID.
-   * @param {string} qrPath - The new QR code path.
-   * @returns {Promise<boolean>} True if the update was successful.
+   * Actualiza la ruta del código QR para una membresía activa.
+   * @returns {Promise<boolean>} Verdadero si la actualización fue exitosa.
    */
   static async updateQrPath(activeMembershipId, qrPath) {
     const [result] = await pool.query(
@@ -53,23 +40,20 @@ export class MembershipModel {
   }
 
   /**
-   * Adds family members to an active membership.
-   * @param {number} activeMembershipId - The active membership ID.
-   * @param {Array<object>} members - The family members to add.
+   * Agrega miembros de la familia a una membresía activa.
    */
   static async addFamilyMembers(activeMembershipId, members) {
-    for (const member of members) {
-      await pool.query(
-        `INSERT INTO integrantes_membresia (id_activa, nombre_completo)
-         VALUES (?, ?)`,
-        [activeMembershipId, member.fullName]
-      );
-    }
+    if (!members || members.length === 0) return;
+    const memberValues = members.map(m => [activeMembershipId, m.fullName]);
+    await pool.query(
+      "INSERT INTO integrantes_membresia (id_activa, nombre_completo) VALUES ?",
+      [memberValues]
+    );
   }
 
   /**
-   * Retrieves all membership types.
-   * @returns {Promise<Array<object>>} A list of membership types.
+   * Obtiene todos los tipos de membresía desde la base de datos.
+   * @returns {Promise<Array<object>>} Una lista de los tipos de membresía.
    */
   static async getMembershipTypes() {
     const [rows] = await pool.query(
@@ -84,264 +68,164 @@ export class MembershipModel {
   }
 
   /**
-   * Retrieves a membership type by its ID.
-   * @param {number} membershipTypeId - The ID of the membership type.
-   * @returns {Promise<object|null>} The membership type object.
+   * Busca un tipo de membresía por su ID.
+   * @returns {Promise<object|null>} El objeto del tipo de membresía.
    */
   static async findTypeById(membershipTypeId) {
     const [rows] = await pool.query(
-      `SELECT id_tipo_membresia as membershipTypeId,
-              nombre as name,
-              precio as price,
-              max_integrantes as maxMembers
-       FROM tipos_membresia
-       WHERE id_tipo_membresia = ?`,
+      `SELECT * FROM tipos_membresia WHERE id_tipo_membresia = ?`,
       [membershipTypeId]
     );
     return rows[0] || null;
   }
 
   /**
-   * Retrieves the family members for an active membership.
-   * @param {number} activeMembershipId - The active membership ID.
-   * @returns {Promise<Array<object>>} A list of family members.
+   * Busca los miembros de una familia por el ID de la membresía activa.
+   * @returns {Promise<Array<object>>} Una lista de los miembros de la familia.
    */
   static async findMembersByActiveId(activeMembershipId) {
     const [rows] = await pool.query(
-      `SELECT nombre_completo as fullName
-       FROM integrantes_membresia
-       WHERE id_activa = ?`,
+      `SELECT nombre_completo as fullName FROM integrantes_membresia WHERE id_activa = ?`,
       [activeMembershipId]
     );
     return rows;
   }
 
-  static async getPaymentMethods() {
-    const [rows] = await pool.query(
-      `SELECT id_metodo_pago as paymentMethodId, nombre as name FROM metodos_pago ORDER BY nombre`
-    );
-    return rows;
-  }
-
-  static async getFullMembershipWithPayment(activeMembershipId) {
-    try {
-      const [rows] = await pool.query(
-        `SELECT
-          ma.id_activa as activeMembershipId,
-          c.nombre_completo as clientName,
-          tm.nombre as membershipTypeName,
-          ma.fecha_inicio as startDate,
-          ma.fecha_fin as endDate,
-          ma.precio_final as finalPrice,
-          ma.qr_path as qrPath,
-          mp.nombre as paymentMethod
-        FROM membresias_activas ma
-        INNER JOIN clientes c ON c.id_cliente = ma.id_cliente
-        INNER JOIN membresias m ON m.id_membresia = ma.id_membresia
-        INNER JOIN tipos_membresia tm ON m.id_tipo_membresia = tm.id_tipo_membresia
-        LEFT JOIN pagos p ON p.id_activa = ma.id_activa
-        LEFT JOIN metodos_pago mp ON mp.id_metodo_pago = p.id_metodo_pago
-        WHERE ma.id_activa = ?
-        ORDER BY p.fecha_pago DESC
-        LIMIT 1`,
-        [activeMembershipId]
-      );
-
-      if (rows.length === 0) {
-        return null;
-      }
-
-      const membership = rows[0];
-      membership.familyMembers = await this.findMembersByActiveId(activeMembershipId);
-
-      return membership;
-    } catch (error) {
-      console.error("Error in getFullMembershipWithPayment:", error);
-      throw error;
-    }
-  }
-
-  static async getAllActive() {
-    const [rows] = await pool.query(`
-      SELECT ma.id_activa as activeMembershipId,
-             c.nombre_completo as clientName,
-             tm.nombre as membershipTypeName,
-             ma.fecha_inicio as startDate,
-             ma.fecha_fin as endDate,
-             ma.estado
-      FROM membresias_activas ma
-      JOIN clientes c ON c.id_cliente = ma.id_cliente
-      JOIN membresias m ON m.id_membresia = ma.id_membresia
-      JOIN tipos_membresia tm ON tm.id_tipo_membresia = m.id_tipo_membresia
-      ORDER BY ma.fecha_inicio DESC
-    `);
-    return rows;
-  }
-
+  /**
+   * Busca una membresía activa por su ID, incluyendo detalles del cliente y tipo de membresía.
+   * @returns {Promise<object|null>} La membresía o nulo si no se encuentra.
+   */
   static async findById(id) {
-    try {
-      const [rows] = await pool.query(
-        `SELECT
-          ma.id_activa as activeMembershipId,
-          ma.id_cliente as clientId,
-          ma.id_membresia as membershipId,
-          ma.fecha_inicio as startDate,
-          ma.fecha_fin as endDate,
-          ma.precio_final as finalPrice,
-          ma.estado as status,
-          ma.qr_path as qrPath,
-          c.nombre_completo as clientName,
-          c.telefono as clientPhone,
-          c.correo as clientEmail,
-          tm.nombre as membershipTypeName,
-          tm.max_integrantes as maxMembers,
-          tm.precio as price,
-          DATEDIFF(ma.fecha_fin, CURDATE()) as remainingDays,
-          CASE
-            WHEN tm.max_integrantes > 1 THEN 'Family'
-            ELSE 'Individual'
-          END as type
-        FROM membresias_activas ma
-        INNER JOIN clientes c ON ma.id_cliente = c.id_cliente
-        INNER JOIN membresias m ON ma.id_membresia = ma.id_membresia
-        INNER JOIN tipos_membresia tm ON m.id_tipo_membresia = tm.id_tipo_membresia
-        WHERE ma.id_activa = ?`,
-        [id]
-      );
-
-      if (rows.length === 0) {
-        return null;
-      }
-
-      const membership = rows[0];
-      if (membership.maxMembers > 1) {
-        membership.familyMembers = await this.findMembersByActiveId(id);
-      } else {
-        membership.familyMembers = [];
-      }
-
-      return membership;
-    } catch (error) {
-      console.error("Error in MembershipModel.findById:", error);
-      throw error;
-    }
-  }
-
-  static async updateStatus(activeMembershipId, newStatus) {
-    const [result] = await pool.query(
-      `UPDATE membresias_activas SET estado = ? WHERE id_activa = ?`,
-      [newStatus, activeMembershipId]
-    );
-    return result.affectedRows > 0;
-  }
-
-  static async getFamilyPrice() {
     const [rows] = await pool.query(
-      `SELECT precio FROM tipos_membresia WHERE nombre = 'Familiar'`
-    );
-    return rows[0]?.precio || 1200.0;
-  }
-
-  static async getAll(filters = {}) {
-    let query = `
-      SELECT
+      `SELECT
         ma.id_activa as activeMembershipId,
+        ma.id_cliente as clientId,
+        ma.id_membresia as membershipId,
+        ma.fecha_inicio as startDate,
+        ma.fecha_fin as endDate,
+        ma.precio_final as finalPrice,
+        ma.estado as status,
+        ma.qr_path as qrPath,
         c.nombre_completo as clientName,
         c.telefono as clientPhone,
         c.correo as clientEmail,
         tm.nombre as membershipTypeName,
-        ma.fecha_inicio as startDate,
-        ma.fecha_fin as endDate,
-        ma.estado as status,
+        tm.max_integrantes as maxMembers,
         DATEDIFF(ma.fecha_fin, CURDATE()) as remainingDays,
-        CASE
-          WHEN tm.max_integrantes > 1 THEN 'Family'
-          ELSE 'Individual'
-        END as type,
-        (SELECT COUNT(*) FROM integrantes_membresia im WHERE im.id_activa = ma.id_activa) as memberCount
+        CASE WHEN tm.max_integrantes > 1 THEN 'Family' ELSE 'Individual' END as type
+      FROM membresias_activas ma
+      JOIN clientes c ON ma.id_cliente = c.id_cliente
+      JOIN membresias m ON ma.id_membresia = ma.id_membresia
+      JOIN tipos_membresia tm ON m.id_tipo_membresia = tm.id_tipo_membresia
+      WHERE ma.id_activa = ?`,
+      [id]
+    );
+    if (rows.length === 0) return null;
+    const membership = rows[0];
+    if (membership.maxMembers > 1) {
+      membership.familyMembers = await this.findMembersByActiveId(id);
+    }
+    return membership;
+  }
+
+  /**
+   * Obtiene todas las membresías con filtros opcionales.
+   * @param {object} filters - Opciones de filtrado.
+   * @returns {Promise<Array<object>>} Una lista de membresías.
+   */
+  static async getAll(filters = {}) {
+    let query = `
+      SELECT
+        ma.id_activa as activeMembershipId, c.nombre_completo as clientName,
+        c.telefono as clientPhone, c.correo as clientEmail, tm.nombre as membershipTypeName,
+        ma.fecha_inicio as startDate, ma.fecha_fin as endDate, ma.estado as status,
+        DATEDIFF(ma.fecha_fin, CURDATE()) as remainingDays,
+        CASE WHEN tm.max_integrantes > 1 THEN 'Family' ELSE 'Individual' END as type
       FROM membresias_activas ma
       JOIN clientes c ON c.id_cliente = ma.id_cliente
       JOIN membresias m ON m.id_membresia = ma.id_membresia
       JOIN tipos_membresia tm ON m.id_tipo_membresia = tm.id_tipo_membresia
     `;
-
-    const whereClauses = [];
-    const params = [];
-
+    const whereClauses = [], params = [];
     if (filters.searchTerm) {
       whereClauses.push(`(c.nombre_completo LIKE ? OR c.telefono LIKE ? OR c.correo LIKE ?)`);
       const searchTerm = `%${filters.searchTerm}%`;
       params.push(searchTerm, searchTerm, searchTerm);
     }
-
     if(filters.type) {
-        const isFamily = filters.type === 'Family';
-        whereClauses.push(`tm.max_integrantes ${isFamily ? '>' : '='} 1`);
+        whereClauses.push(`tm.max_integrantes ${filters.type === 'Family' ? '>' : '='} 1`);
     }
-
     if(filters.status) {
         switch (filters.status) {
-            case "Active":
-              whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) > 7");
-              break;
-            case "Expiring":
-              whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) BETWEEN 0 AND 7");
-              break;
-            case "Expired":
-              whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) < 0");
-              break;
+            case "Active": whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) > 7"); break;
+            case "Expiring": whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) BETWEEN 0 AND 7"); break;
+            case "Expired": whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) < 0"); break;
         }
     }
-
-    if (whereClauses.length > 0) {
-      query += ` WHERE ${whereClauses.join(' AND ')}`;
-    }
-
+    if (whereClauses.length > 0) query += ` WHERE ${whereClauses.join(' AND ')}`;
     query += ` ORDER BY ma.fecha_fin ASC`;
-
     const [rows] = await pool.query(query, params);
     return rows;
   }
 
+  /**
+   * Actualiza una membresía activa.
+   * @returns {Promise<boolean>} Verdadero si fue exitoso.
+   */
   static async update(id, data) {
-    const [result] = await pool.query(
-      "UPDATE membresias_activas SET ? WHERE id_activa = ?",
-      [data, id]
-    );
+    const [result] = await pool.query("UPDATE membresias_activas SET ? WHERE id_activa = ?", [data, id]);
     return result.affectedRows > 0;
   }
 
-  static async rebuildFamilyMembers(activeMembershipId, members) {
-    // This should be done in a transaction in the service layer.
-    await pool.query("DELETE FROM integrantes_membresia WHERE id_activa = ?", [activeMembershipId]);
-
+  /**
+   * Re-escribe los miembros de una familia para una membresía.
+   */
+  static async rebuildFamilyMembers(activeMembershipId, members, connection = pool) {
+    await connection.query("DELETE FROM integrantes_membresia WHERE id_activa = ?", [activeMembershipId]);
     if (members && members.length > 0) {
       const memberValues = members.map(m => [activeMembershipId, m.fullName]);
-      await pool.query(
-        "INSERT INTO integrantes_membresia (id_activa, nombre_completo) VALUES ?",
-        [memberValues]
-      );
+      await connection.query("INSERT INTO integrantes_membresia (id_activa, nombre_completo) VALUES ?", [memberValues]);
     }
   }
 
+  /**
+   * Actualiza el estado de una membresía (Activa, Vencida, etc.).
+   * @returns {Promise<boolean>} Verdadero si fue exitoso.
+   */
+  static async updateStatus(activeMembershipId, newStatus) {
+    const [result] = await pool.query("UPDATE membresias_activas SET estado = ? WHERE id_activa = ?", [newStatus, activeMembershipId]);
+    return result.affectedRows > 0;
+  }
+
+  /**
+   * Elimina los integrantes de una membresía.
+   */
   static async deleteFamilyMembersByActiveId(id, connection = pool) {
     await connection.query("DELETE FROM integrantes_membresia WHERE id_activa = ?", [id]);
   }
 
+  /**
+   * Elimina una membresía activa y retorna el ID del contrato asociado.
+   * @returns {Promise<{affectedRows: number, contractId: number|null}>}
+   */
   static async deleteActiveById(id, connection = pool) {
-    // Before deleting, we need the contract ID (id_membresia) to delete from the other table.
     const [rows] = await connection.query("SELECT id_membresia FROM membresias_activas WHERE id_activa = ?", [id]);
     const contractId = rows.length > 0 ? rows[0].id_membresia : null;
-
     const [result] = await connection.query("DELETE FROM membresias_activas WHERE id_activa = ?", [id]);
-
     return { affectedRows: result.affectedRows, contractId };
   }
 
+  /**
+   * Elimina un contrato de membresía.
+   */
   static async deleteContractById(id, connection = pool) {
     await connection.query("DELETE FROM membresias WHERE id_membresia = ?", [id]);
   }
 
+  /**
+   * Cuenta cuántas membresías activas tiene un cliente.
+   * @returns {Promise<number>} El número de membresías activas.
+   */
   static async countActiveByClientId(clientId, connection = pool) {
     const [rows] = await connection.query("SELECT COUNT(*) as count FROM membresias_activas WHERE id_cliente = ?", [clientId]);
     return rows[0].count;

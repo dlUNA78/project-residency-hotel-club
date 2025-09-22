@@ -1,24 +1,29 @@
 import { ClientService } from "../services/client.service.js";
 import { MembershipService } from "../services/membership.service.js";
+import { MembershipModel } from "../models/membership.model.js"; // For getMembershipTypes
+import { PaymentModel } from "../models/payment.model.js"; // For getPaymentMethods
 
 export class MembershipCreationController {
   /**
-   * Renders the page for creating a new membership.
+   * Renderiza la página para crear una nueva membresía.
    */
   static async renderCreationPage(req, res) {
     try {
-      const userRole = req.session.user?.role || "Recepcionista";
-      const isAdmin = userRole === "Administrador";
+      const userRole = req.session.user?.role || "Receptionist";
+      const isAdmin = userRole === "Administrator";
 
-      const pageData = await MembershipService.getCreationPageData();
+      const [membershipTypes, paymentMethods] = await Promise.all([
+        MembershipModel.getMembershipTypes(),
+        PaymentModel.getPaymentMethods()
+      ]);
 
       res.render("membership/createMembership", {
         title: "Create Membership",
         showFooter: true,
         isAdmin,
         userRole,
-        membershipTypes: pageData.membershipTypes,
-        paymentMethods: pageData.paymentMethods,
+        membershipTypes,
+        paymentMethods,
         apiBase: "/memberships",
       });
     } catch (error) {
@@ -28,7 +33,7 @@ export class MembershipCreationController {
   }
 
   /**
-   * Handles the creation of a new client.
+   * Maneja la creación de un nuevo cliente.
    */
   static async handleClientCreation(req, res) {
     try {
@@ -43,23 +48,22 @@ export class MembershipCreationController {
       console.error("Error in handleClientCreation:", err);
       res
         .status(500)
-        .json({ error: "Error creating the client.", details: err.message });
+        .json({ error: "Error al crear el cliente.", details: err.message });
     }
   }
 
   /**
-   * Handles the creation of a new membership.
+   * Maneja la creación de una nueva membresía.
    */
   static async handleMembershipCreation(req, res) {
     try {
-      // The body names are still in Spanish from the form
       const {
         id_cliente,
         id_tipo_membresia,
         fecha_inicio,
         fecha_fin,
         precio_final,
-        integrantes, // This is an array of strings
+        integrantes,
         metodo_pago,
       } = req.body;
 
@@ -77,15 +81,14 @@ export class MembershipCreationController {
 
       res.json({
         success: true,
-        message: "Membership created successfully.",
+        message: "Membresía creada exitosamente.",
         data: result,
       });
-
     } catch (err) {
       console.error("Error in handleMembershipCreation:", err);
       res.status(500).json({
         success: false,
-        message: "Failed to create membership.",
+        message: "Error al crear la membresía.",
         error: err.message,
       });
     }

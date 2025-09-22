@@ -3,6 +3,12 @@ import { ReportsModel } from "../models/reports.model.js";
 
 export class MembershipListController {
 
+  /**
+   * Obtiene y formatea las membresías con un campo de estado calculado.
+   * @param {object} filters - Filtros para la consulta.
+   * @returns {Promise<Array<object>>} Membresías formateadas.
+   * @private
+   */
   static async _getFormattedMemberships(filters) {
     const memberships = await MembershipModel.getAll(filters);
 
@@ -13,14 +19,13 @@ export class MembershipListController {
       } else if (m.remainingDays <= 7) {
         statusType = "Expiring";
       }
-
-      return {
-        ...m,
-        statusType,
-      };
+      return { ...m, statusType };
     });
   }
 
+  /**
+   * Renderiza la página de la lista de membresías.
+   */
   static async renderListPage(req, res) {
     try {
       const userRole = req.session.user?.role || "Receptionist";
@@ -53,6 +58,9 @@ export class MembershipListController {
     }
   }
 
+  /**
+   * Proporciona una lista de membresías para llamadas API.
+   */
   static async getMembershipsApi(req, res) {
     try {
       const filters = {
@@ -68,6 +76,9 @@ export class MembershipListController {
     }
   }
 
+  /**
+   * Proporciona estadísticas del panel para llamadas API.
+   */
   static async getStatsApi(req, res) {
     try {
       const stats = await ReportsModel.getDashboardStats();
@@ -78,6 +89,9 @@ export class MembershipListController {
     }
   }
 
+  /**
+   * Proporciona los miembros de una familia para una membresía específica.
+   */
   static async getFamilyMembersApi(req, res) {
     try {
       const { id } = req.params;

@@ -1,6 +1,9 @@
 import { ReportsService } from "../services/reports.service.js";
 
 export class MembershipReportsController {
+  /**
+   * Renderiza la página principal de reportes.
+   */
   static renderReportsPage(req, res) {
     const userRole = req.session.user?.role || "Receptionist";
     const isAdmin = userRole === "Administrator";
@@ -15,6 +18,9 @@ export class MembershipReportsController {
     });
   }
 
+  /**
+   * Obtiene los datos para la previsualización de un reporte.
+   */
   static async getReportPreview(req, res) {
     try {
       const { period, date } = req.query;
@@ -32,6 +38,9 @@ export class MembershipReportsController {
     }
   }
 
+  /**
+   * Maneja la descarga de un reporte en formato PDF.
+   */
   static async downloadReportPdf(req, res) {
     try {
       const { period, date } = req.query;
@@ -42,7 +51,6 @@ export class MembershipReportsController {
       res.send(pdf);
     } catch (error) {
       console.error("Error generating PDF report:", error);
-      // Redirect with an error message that the frontend can display
       res.redirect(`/memberships/reports?error=${encodeURIComponent(error.message)}`);
     }
   }

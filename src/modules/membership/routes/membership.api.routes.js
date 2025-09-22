@@ -4,26 +4,18 @@ import { MembershipListController } from "../controllers/membershipList.controll
 import { MembershipReportsController } from "../controllers/membershipReports.controller.js";
 
 const routerApi = express.Router();
-
-// Middleware
 routerApi.use(authMiddleware);
 
-// === API Routes for client-side data fetching ===
-
-// Get filtered list of memberships
-// Final URL: GET /api/memberships/
+// API route to get a filtered list of memberships
 routerApi.get("/", MembershipListController.getMembershipsApi);
 
-// Get dashboard statistics
-// Final URL: GET /api/memberships/statistics
+// API route to get dashboard statistics
 routerApi.get("/statistics", MembershipListController.getStatsApi);
 
-// Get family members for a specific membership
-// Final URL: GET /api/memberships/:id/members
+// API route to get family members for a specific membership
 routerApi.get("/:id/members", MembershipListController.getFamilyMembersApi);
 
-// Get a preview of report data
-// Final URL: GET /api/memberships/reports/preview
+// API route to get a preview of report data
 routerApi.get("/reports/preview", MembershipReportsController.getReportPreview);
 
 export { routerApi as membershipApiRoutes };

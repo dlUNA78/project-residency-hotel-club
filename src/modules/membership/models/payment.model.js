@@ -2,55 +2,32 @@ import { pool } from "../../../dataBase/conecctionDataBase.js";
 
 export class PaymentModel {
   /**
-   * Records a payment in the database.
-   * @param {object} paymentData - The data for the payment.
-   * @param {number} paymentData.activeMembershipId - The active membership ID.
-   * @param {number} paymentData.paymentMethodId - The payment method ID.
-   * @param {number} paymentData.amount - The amount paid.
-   * @returns {Promise<number>} The ID of the newly created payment record.
+   * Registra un nuevo pago en la base de datos.
+   * @returns {Promise<number>} El ID del nuevo registro de pago.
    */
   static async create({ activeMembershipId, paymentMethodId, amount }) {
-    try {
-      const [result] = await pool.query(
-        `INSERT INTO pagos (id_activa, id_metodo_pago, monto)
-         VALUES (?, ?, ?)`,
-        [activeMembershipId, paymentMethodId, amount]
-      );
-
-      if (!result || result.affectedRows === 0 || !result.insertId) {
-        throw new Error("Could not record the payment in the database.");
-      }
-
-      return result.insertId;
-    } catch (error) {
-      console.error("Error in PaymentModel.create:", error);
-      throw error;
-    }
+    const [result] = await pool.query(
+      `INSERT INTO pagos (id_activa, id_metodo_pago, monto)
+       VALUES (?, ?, ?)`,
+      [activeMembershipId, paymentMethodId, amount]
+    );
+    return result.insertId;
   }
 
   /**
-   * Finds all payments associated with a given active membership ID.
-   * @param {number} activeMembershipId - The active membership ID.
-   * @returns {Promise<Array<object>>} A list of payment records.
+   * Obtiene todos los métodos de pago disponibles.
+   * @returns {Promise<Array<object>>} Una lista de métodos de pago.
    */
-  static async findByMembershipId(activeMembershipId) {
+  static async getPaymentMethods() {
     const [rows] = await pool.query(
-      `
-      SELECT p.id_pago as paymentId,
-             p.fecha_pago as paymentDate,
-             p.monto as amount,
-             mp.nombre as paymentMethod
-      FROM pagos p
-      JOIN metodos_pago mp ON mp.id_metodo_pago = p.id_metodo_pago
-      WHERE p.id_activa = ?
-      ORDER BY p.fecha_pago DESC
-    `,
-      [activeMembershipId]
+      `SELECT id_metodo_pago as paymentMethodId, nombre as name FROM metodos_pago ORDER BY nombre`
     );
-
     return rows;
   }
 
+  /**
+   * Elimina los pagos asociados a una membresía activa.
+   */
   static async deleteByActiveMembershipId(activeMembershipId, connection = pool) {
     await connection.query("DELETE FROM pagos WHERE id_activa = ?", [activeMembershipId]);
   }

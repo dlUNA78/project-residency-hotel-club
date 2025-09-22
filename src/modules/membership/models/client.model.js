@@ -2,12 +2,12 @@ import { pool } from "../../../dataBase/conecctionDataBase.js";
 
 export class ClientModel {
   /**
-   * Creates a new client in the database.
-   * @param {object} clientData - The data for the new client.
-   * @param {string} clientData.fullName - The client's full name.
-   * @param {string} clientData.phone - The client's phone number.
-   * @param {string} clientData.email - The client's email address.
-   * @returns {Promise<number>} The ID of the newly created client.
+   * Crea un nuevo cliente en la base de datos.
+   * @param {object} clientData - Los datos para el nuevo cliente.
+   * @param {string} clientData.fullName - El nombre completo del cliente.
+   * @param {string} clientData.phone - El teléfono del cliente.
+   * @param {string} clientData.email - El correo electrónico del cliente.
+   * @returns {Promise<number>} El ID del cliente recién creado.
    */
   static async create({ fullName, phone, email }) {
     try {
@@ -18,20 +18,43 @@ export class ClientModel {
       );
 
       if (!result || result.affectedRows === 0 || !result.insertId) {
-        throw new Error("Could not create the client in the database.");
+        throw new Error("No se pudo crear el cliente en la base de datos.");
       }
 
       return result.insertId;
     } catch (error) {
-      console.error("Error in ClientModel.create:", error);
+      console.error("Error en ClientModel.create:", error);
       throw error;
     }
   }
 
   /**
-   * Finds a client by their ID.
-   * @param {number} clientId - The ID of the client to find.
-   * @returns {Promise<object|null>} The client object or null if not found.
+   * Actualiza los datos de un cliente en la base de datos.
+   * @param {object} clientData - Los datos a actualizar.
+   * @param {number} clientData.clientId - El ID del cliente a actualizar.
+   * @param {string} clientData.fullName - El nombre completo del cliente.
+   * @param {string} clientData.phone - El teléfono del cliente.
+   * @param {string} clientData.email - El correo electrónico del cliente.
+   * @returns {Promise<boolean>} Verdadero si la actualización fue exitosa.
+   */
+  static async update({ clientId, fullName, phone, email }) {
+    try {
+      const [result] = await pool.query(
+        `UPDATE clientes SET nombre_completo = ?, telefono = ?, correo = ?
+         WHERE id_cliente = ?`,
+        [fullName, phone, email, clientId]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error("Error en ClientModel.update:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca un cliente por su ID.
+   * @param {number} clientId - El ID del cliente a buscar.
+   * @returns {Promise<object|null>} El objeto del cliente o nulo si no se encuentra.
    */
   static async findById(clientId) {
     const [rows] = await pool.query(
@@ -47,28 +70,10 @@ export class ClientModel {
   }
 
   /**
-   * Updates a client's data in the database.
-   * @param {object} clientData - The data to update.
-   * @param {number} clientData.clientId - The ID of the client to update.
-   * @param {string} clientData.fullName - The client's full name.
-   * @param {string} clientData.phone - The client's phone number.
-   * @param {string} clientData.email - The client's email address.
-   * @returns {Promise<boolean>} True if the update was successful.
+   * Elimina un cliente por su ID.
+   * @param {number} id - El ID del cliente a eliminar.
+   * @param {object} connection - (Opcional) Una conexión de base de datos existente.
    */
-  static async update({ clientId, fullName, phone, email }) {
-    try {
-      const [result] = await pool.query(
-        `UPDATE clientes SET nombre_completo = ?, telefono = ?, correo = ?
-         WHERE id_cliente = ?`,
-        [fullName, phone, email, clientId]
-      );
-      return result.affectedRows > 0;
-    } catch (error) {
-      console.error("Error in ClientModel.update:", error);
-      throw error;
-    }
-  }
-
   static async deleteById(id, connection = pool) {
     await connection.query("DELETE FROM clientes WHERE id_cliente = ?", [id]);
   }
