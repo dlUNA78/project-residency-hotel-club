@@ -2,112 +2,108 @@
 
 <body class="bg-green-50 min-h-screen p-6">
     <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md overflow-hidden mt-20 border border-green-200">
-        <!-- Formulario de cliente -->
+        <!-- Client Form -->
         <div class="p-6 border-b border-green-200">
-            <h1 class="text-2xl font-bold text-green-800">Crear Cliente</h1>
-            <form id="form-cliente" action="/memberships/createClient" method="POST" class="mt-4 space-y-4">
+            <h1 class="text-2xl font-bold text-green-800">Create Client</h1>
+            <form id="client-form" action="/api/memberships/client" method="POST" class="mt-4 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-green-700">Nombre completo</label>
-                    <input type="text" name="nombre_completo" required
+                    <label class="block text-sm font-medium text-green-700">Full Name</label>
+                    <input type="text" name="fullName" required
                         class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                 </div>
-
                 <div>
-                    <label class="block text-sm font-medium text-green-700">Teléfono</label>
-                    <input type="text" name="telefono"
+                    <label class="block text-sm font-medium text-green-700">Phone</label>
+                    <input type="text" name="phone"
                         class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                 </div>
-
                 <div>
-                    <label class="block text-sm font-medium text-green-700">Correo</label>
-                    <input type="email" name="correo" required
+                    <label class="block text-sm font-medium text-green-700">Email</label>
+                    <input type="email" name="email" required
                         class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                 </div>
-
                 <button type="submit"
                     class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    Registrar Cliente
+                    Register Client
                 </button>
-
-                <div id="cliente-message" class="hidden text-sm font-medium"></div>
+                <div id="client-message" class="hidden text-sm font-medium"></div>
             </form>
         </div>
 
-        <!-- Formulario de membresía -->
+        <!-- Membership Form -->
         <div class="p-6">
-            <h1 class="text-2xl font-bold text-green-800">Crear Membresía</h1>
-            <form id="createMemberForm" action="/memberships/createMembership" method="POST" class="mt-4 space-y-4">
-                <input type="hidden" id="id_cliente" name="id_cliente" value="">
+            <h1 class="text-2xl font-bold text-green-800">Create Membership</h1>
+            <form id="membership-form" action="/api/memberships" method="POST" class="mt-4 space-y-4">
+                <input type="hidden" id="clientId" name="clientId" value="">
 
                 <div>
-                    <label class="block text-sm font-medium text-green-700">Tipo de membresía:</label>
-                    <select id="tipoMembresia" name="id_tipo_membresia" required
+                    <label class="block text-sm font-medium text-green-700">Membership Type:</label>
+                    <select id="membershipType" name="membershipTypeId" required
                         class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
-                        {{#each tiposMembresia}}
-                        <option value="{{id_tipo_membresia}}" data-max="{{max_integrantes}}" data-precio="{{precio}}">
-                            {{nombre}} - ${{precio}}
+                        {{#each membershipTypes}}
+                        <option value="{{membershipTypeId}}" data-max-members="{{maxMembers}}" data-price="{{price}}">
+                            {{name}} - ${{price}}
                         </option>
                         {{/each}}
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-green-700">Fecha de inicio:</label>
-                    <input type="date" id="fecha_inicio" name="fecha_inicio" required
+                    <label class="block text-sm font-medium text-green-700">Start Date:</label>
+                    <input type="date" id="startDate" name="startDate" required
                         class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-green-700">Fecha de fin:</label>
-                    <input type="date" id="fecha_fin" name="fecha_fin" readonly
+                    <label class="block text-sm font-medium text-green-700">End Date:</label>
+                    <input type="date" id="endDate" name="endDate" readonly
                         class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm bg-green-50">
                 </div>
 
-                <input type="hidden" id="precio_final" name="precio_final" value="">
+                <input type="hidden" id="finalPrice" name="finalPrice" value="">
 
-                <div id="integrantesSection" class="hidden mt-4 p-4 border border-green-200 rounded-md bg-green-50">
-                    <h4 class="text-sm font-medium text-green-700 mb-2">Integrantes familiares</h4>
-                    <div id="integrantesContainer" class="space-y-2"></div>
-                    <button type="button" id="addIntegranteBtn"
+                <div id="members-section" class="hidden mt-4 p-4 border border-green-200 rounded-md bg-green-50">
+                    <h4 class="text-sm font-medium text-green-700 mb-2">Family Members</h4>
+                    <div id="members-container" class="space-y-2"></div>
+                    <button type="button" id="add-member-btn"
                         class="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        ➕ Agregar integrante
+                        ➕ Add Member
                     </button>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-green-700">Método de pago:</label>
-                    <select id="metodo_pago" name="metodo_pago" required
+                    <label class="block text-sm font-medium text-green-700">Payment Method:</label>
+                    <select id="paymentMethod" name="paymentMethodId" required
                         class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
-                        <option value="">Seleccione un método de pago</option>
-                        {{#each tiposPago}}
-                        <option value="{{id_metodo_pago}}">{{nombre}}</option>
+                        <option value="">Select a payment method</option>
+                        {{#each paymentMethods}}
+                        <option value="{{paymentMethodId}}">{{name}}</option>
                         {{/each}}
                     </select>
                 </div>
 
                 <div class="mt-4">
-                    <label class="block text-sm font-medium text-green-700">Precio final:</label>
-                    <input type="text" id="precioFinal" readonly
+                    <label class="block text-sm font-medium text-green-700">Final Price:</label>
+                    <input type="text" id="final-price-display" readonly
                         class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm bg-green-50">
                 </div>
 
                 {{#if isAdmin}}
                 <div class="flex items-end space-x-2">
                     <div class="flex-1">
-                        <label class="block text-sm font-medium text-green-700">Descuento (%):</label>
-                        <input type="number" id="descuento" name="descuento" min="0" max="100" value="0"
+                        <label class="block text-sm font-medium text-green-700">Discount (%):</label>
+                        <input type="number" id="discount" name="discount" min="0" max="100" value="0"
                             class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                     </div>
-                    <button type="button" id="aplicarDescuentoBtn"
+                    <button type="button" id="apply-discount-btn"
                         class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        Aplicar
+                        Apply
                     </button>
                 </div>
                 {{/if}}
 
-                <button type="submit" id="submit-membership" disabled
+                <button type="submit" id="submit-membership-btn" disabled
                     class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
-                    Crear Membresía (complete primero el cliente)
+                    Create Membership (complete client form first)
                 </button>
 
                 <div id="membership-message" class="hidden text-sm font-medium"></div>
@@ -115,84 +111,35 @@
         </div>
     </div>
 
-    <!-- Modal para confirmación de cliente -->
-    <div id="clienteModal"
+    <!-- Client Confirmation Modal -->
+    <div id="client-modal"
         class="fixed inset-0 bg-black bg-opacity-50 max-h-[80vh] overflow-y-auto items-center justify-center hidden z-50">
         <div class="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 class="text-lg font-bold text-green-800 mb-4">Confirmar Datos del Cliente</h3>
-            <div id="clienteModalContent" class="mb-4 space-y-2"></div>
+            <h3 class="text-lg font-bold text-green-800 mb-4">Confirm Client Data</h3>
+            <div id="client-modal-content" class="mb-4 space-y-2"></div>
             <div class="flex justify-end space-x-3">
-                <button id="cancelClienteBtn"
-                    class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
-                <button id="confirmClienteBtn"
-                    class="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">Confirmar</button>
+                <button id="cancel-client-btn"
+                    class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+                <button id="confirm-client-btn"
+                    class="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">Confirm</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal para confirmación de membresía -->
-    <div id="membershipModal"
+    <!-- Membership Confirmation Modal -->
+    <div id="membership-modal"
         class="fixed inset-0 bg-black bg-opacity-50 max-h-[80vh] overflow-y-auto items-center justify-center hidden z-50">
         <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
-            <h3 class="text-lg font-bold text-green-800 mb-4">Confirmar Membresía</h3>
-            <div id="membershipModalContent" class="mb-4 space-y-2"></div>
+            <h3 class="text-lg font-bold text-green-800 mb-4">Confirm Membership</h3>
+            <div id="membership-modal-content" class="mb-4 space-y-2"></div>
             <div class="flex justify-end space-x-3">
-                <button id="cancelMembershipBtn"
-                    class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
-                <button id="confirmMembershipBtn"
-                    class="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">Confirmar</button>
+                <button id="cancel-membership-btn"
+                    class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+                <button id="confirm-membership-btn"
+                    class="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">Confirm</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // VERIFICACIÓN DE CARGA - Pon esto ANTES de cargar createMembership.js
-        console.log('🔄 Verificando carga de scripts...');
-
-        // Verificar si los elementos del DOM existen
-        const checkElements = () => {
-            const elements = [
-                'form-cliente', 'createMemberForm', 'clienteModal', 'membershipModal'
-            ];
-
-            elements.forEach(id => {
-                const element = document.getElementById(id);
-                console.log(`${element ? '✅' : '❌'} Elemento #${id}:`, element ? 'Encontrado' : 'NO encontrado');
-            });
-        };
-
-        // Verificar inmediatamente
-        checkElements();
-
-        // Verificar después de que todo cargue
-        window.addEventListener('load', checkElements);
-    </script>
-
-    <script src="/js/moduleMembershipJs/createMembership.js"></script>
-
-    <script>
-        // VERIFICACIÓN DE MembershipUI - Esto después de cargar el script
-        console.log('🔍 Verificando MembershipUI...');
-        console.log('MembershipUI definido:', typeof MembershipUI !== 'undefined');
-
-        if (typeof MembershipUI !== 'undefined') {
-            console.log('✅ MembershipUI cargado');
-            console.log('Tiene init?:', typeof MembershipUI.init === 'function');
-
-            // Intentar inicializar con retry por si el DOM no está listo
-            setTimeout(() => {
-                try {
-                    MembershipUI.init();
-                    console.log('✅ MembershipUI inicializado');
-                } catch (error) {
-                    console.error('❌ Error al inicializar:', error);
-                }
-            }, 100);
-        } else {
-            console.error('❌ MembershipUI NO está definido');
-            console.log('Variables globales:', Object.keys(window).filter(k =>
-                k.toLowerCase().includes('member') || k.includes('UI')
-            ));
-        }
-    </script>
+    <script src="/js/moduleMembershipJs/membershipForm.js"></script>
 </body>

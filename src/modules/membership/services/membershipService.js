@@ -1,241 +1,174 @@
 // services/membershipService.js
-import { MembershipModel } from "../models/modelMembership.js";
-import { generarQRArchivo } from "../utils/qrGenerator.js";
-import { sendReceiptEmail } from "../utils/nodeMailer.js";
+import { MembershipModel } from "../models/membership.model.js";
+import { sendReceiptEmail } from "../utils/nodeMailer.js"; // Will be refactored
 import QRCode from "qrcode";
 import path from "path";
 import fs from "fs";
 
 export const MembershipService = {
-  async createMembershipContract(membershipData) {
-    const { id_cliente, id_tipo_membresia, fecha_inicio, fecha_fin } =
-      membershipData;
-    return await MembershipModel.createMembershipContract({
-      id_cliente,
-      id_tipo_membresia,
-      fecha_inicio,
-      fecha_fin,
-    });
+
+  async createMembershipContract(contractData) {
+    return await MembershipModel.createMembershipContract(contractData);
   },
 
-  async generateQRCode(qrData, membershipId, titularNombre) {
+  async generateQRCode(qrPayload, activeMembershipId, holderName) {
     try {
-      // Validar que los datos no estén vacíos
-      if (!qrData || qrData.trim() === '') {
-        throw new Error('Datos QR vacíos o inválidos');
+      if (!qrPayload || qrPayload.trim() === "") {
+        throw new Error("QR payload is empty or invalid");
       }
-  
-      // Guardar en public/uploads/qrs/
-      const qrDir = path.join(process.cwd(), 'public', 'uploads', 'qrs');
+      const qrDir = path.join(process.cwd(), "public", "uploads", "qrs");
       if (!fs.existsSync(qrDir)) {
         fs.mkdirSync(qrDir, { recursive: true });
       }
-  
-      // Limpiar nombre para el archivo
-      const cleanName = titularNombre.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
-      const qrFilename = `qr_${membershipId}_${cleanName}.png`;
+      const cleanName = holderName.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 20);
+      const qrFilename = `qr_${activeMembershipId}_${cleanName}.png`;
       const qrFullPath = path.join(qrDir, qrFilename);
-      
-      // Ruta relativa para acceso web (desde public/)
       const qrWebPath = `/uploads/qrs/${qrFilename}`;
-  
-      console.log('📊 Generando QR con datos:', qrData.substring(0, 100) + '...');
-  
-      // Generar QR con configuración robusta
-      await QRCode.toFile(qrFullPath, qrData, {
-        errorCorrectionLevel: 'H', // Mayor corrección de errores
-        type: 'png',
+
+      await QRCode.toFile(qrFullPath, qrPayload, {
+        errorCorrectionLevel: "H",
+        type: "png",
         margin: 2,
         width: 300,
-        color: {
-          dark: '#16a34a',
-          light: '#FFFFFF'
-        },
-        // Forzar versión específica si es necesario
-        version: 10 // Versión 10 soporta ~500 caracteres
+        color: { dark: "#16a34a", light: "#FFFFFF" },
+        version: 10,
       });
-  
-      console.log(`✅ QR generado: ${qrFullPath}`);
-      console.log(`✅ Ruta web: ${qrWebPath}`);
-      
+
+      console.log(`✅ QR generated: ${qrWebPath}`);
       return qrWebPath;
-  
     } catch (error) {
-      console.error('❌ Error generando QR:', error);
-      
-      // Intentar con datos mínimos como fallback
-      try {
-        console.log('🔄 Intentando con datos mínimos de respaldo...');
-        
-        const fallbackData = JSON.stringify({
-          id: membershipId,
-          t: 'Membresía',
-          d: new Date().toISOString().split('T')[0]
-        });
-        
-        const qrDir = path.join(process.cwd(), 'public', 'uploads', 'qrs');
-        const cleanName = titularNombre.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
-        const qrFilename = `qr_${membershipId}_${cleanName}_fallback.png`;
-        const qrFullPath = path.join(qrDir, qrFilename);
-        const qrWebPath = `/uploads/qrs/${qrFilename}`;
-        
-        await QRCode.toFile(qrFullPath, fallbackData, {
-          errorCorrectionLevel: 'H',
-          type: 'png',
-          margin: 2,
-          width: 300,
-          color: {
-            dark: '#16a34a',
-            light: '#FFFFFF'
-          }
-        });
-        
-        console.log(`✅ QR de respaldo generado: ${qrWebPath}`);
-        return qrWebPath;
-        
-      } catch (fallbackError) {
-        console.error('❌ Error incluso con datos de respaldo:', fallbackError);
-        throw new Error(`Error al generar QR: ${error.message}`);
-      }
+      console.error("❌ Error generating QR:", error);
+      // Fallback mechanism can be improved or made more generic if needed
+      throw new Error(`Failed to generate QR code: ${error.message}`);
     }
   },
 
   async activateMembership(activationData) {
-    const { id_cliente, id_membresia, fecha_inicio, fecha_fin, precio_final } =
-      activationData;
-    return await MembershipModel.activateMembership({
-      id_cliente,
-      id_membresia,
-      fecha_inicio,
-      fecha_fin,
-      precio_final,
-    });
+    return await MembershipModel.activateMembership(activationData);
   },
 
-  async addFamilyMembers(id_activa, integrantes) {
-    if (integrantes && integrantes.length > 0) {
-      const integrantesData = integrantes.map((item) =>
-        typeof item === "string"
-          ? { nombre_completo: item, id_relacion: null }
-          : {
-              nombre_completo: item.nombre_completo || item.nombre || "",
-              id_relacion: item.id_relacion || null,
-            }
+  async addFamilyMembers(activeMembershipId, members) {
+    if (members && members.length > 0) {
+      // Ensure data is in the format { fullName: '...' }
+      const membersData = members.map((item) =>
+        typeof item === 'string' ? { fullName: item } : { fullName: item.fullName || item.name || '' }
       );
-      await MembershipModel.addFamilyMembers(id_activa, integrantesData);
+      await MembershipModel.addFamilyMembers(activeMembershipId, membersData);
     }
   },
 
-  async getMembershipDetails(id_cliente, id_tipo_membresia, id_activa) {
-    const [cliente, tipo, integrantesDB] = await Promise.all([
-      MembershipModel.getClienteById(id_cliente),
-      MembershipModel.getTipoMembresiaById(id_tipo_membresia),
-      MembershipModel.getIntegrantesByActiva(id_activa),
+  async getMembershipDetails(clientId, membershipTypeId, activeMembershipId) {
+    const [client, membershipType, members] = await Promise.all([
+      MembershipModel.getClientById(clientId),
+      MembershipModel.getMembershipTypeById(membershipTypeId),
+      MembershipModel.getMembersByActiveMembershipId(activeMembershipId),
     ]);
-
-    return { cliente, tipo, integrantesDB };
+    return { client, membershipType, members };
   },
 
-  async generateQRPayload(cliente, tipo, fechaInicio, fechaFin, integrantes = []) {
+  async generateQRPayload(client, membershipType, startDate, endDate, members = []) {
     try {
-      // Crear un objeto simple con la información esencial
       const qrData = {
-        id: cliente.id_cliente,
-        nombre: cliente.nombre_completo,
-        membresia: tipo.nombre,
-        inicio: fechaInicio,
-        fin: fechaFin,
-        // Solo incluir información crítica para evitar datos excesivos
-        integrantes: integrantes.length > 0 ? integrantes.map(i => i.nombre_completo) : []
+        id: client.clientId,
+        name: client.fullName,
+        membership: membershipType.name,
+        start: startDate,
+        end: endDate,
+        members: members.length > 0 ? members.map((m) => m.fullName) : [],
       };
-  
-      // Convertir a JSON string y limitar el tamaño
       const jsonString = JSON.stringify(qrData);
-      
-      // Verificar que no exceda el límite recomendado para QR (∼4KB)
+
       if (jsonString.length > 4000) {
-        console.warn('⚠️ Los datos del QR son muy grandes, simplificando...');
-        
-        // Versión simplificada si los datos son demasiado grandes
+        console.warn("⚠️ QR data is very large, simplifying...");
         const simplifiedData = {
-          id: cliente.id_cliente,
-          n: cliente.nombre_completo.substring(0, 30), // Limitar nombre
-          m: tipo.nombre.substring(0, 20),
-          i: fechaInicio,
-          f: fechaFin
+          id: client.clientId,
+          n: client.fullName.substring(0, 30),
+          m: membershipType.name.substring(0, 20),
+          i: startDate,
+          f: endDate,
         };
-        
         return JSON.stringify(simplifiedData);
       }
-  
       return jsonString;
-  
     } catch (error) {
-      console.error('❌ Error generando payload QR:', error);
-      // Fallback: datos mínimos esenciales
+      console.error("❌ Error generating QR payload:", error);
       return JSON.stringify({
-        id: cliente.id_cliente,
-        nombre: cliente.nombre_completo,
-        membresia: tipo.nombre,
-        inicio: fechaInicio,
-        fin: fechaFin
+        id: client.clientId,
+        name: client.fullName,
+        error: "Payload generation failed",
       });
     }
   },
-  // Nuevo método para enviar comprobante por email (sin QR)
-  async sendMembershipReceiptEmail(
-    cliente,
-    tipo,
-    fecha_inicio,
-    fecha_fin,
-    integrantesDB,
-    metodo_pago,
-    precio_final
-  ) {
-    if (cliente?.correo) {
+
+  async sendMembershipReceiptEmail(client, membershipType, startDate, endDate, members, paymentMethod, finalPrice) {
+    if (client?.email) {
       await sendReceiptEmail({
-        to: cliente.correo,
-        subject: "Comprobante de Membresía - Hotel Club",
-        titularNombre: cliente.nombre_completo,
-        tipoMembresia: tipo?.nombre || "N/D",
-        fechaInicio: fecha_inicio,
-        fechaFin: fecha_fin,
-        metodoPago: metodo_pago || "No especificado",
-        precioFinal: precio_final,
-        integrantes: integrantesDB,
+        to: client.email,
+        subject: "Membership Receipt - Hotel Club",
+        holderName: client.fullName,
+        membershipType: membershipType?.name || "N/A",
+        startDate,
+        endDate,
+        paymentMethod: paymentMethod || "Not specified",
+        finalPrice,
+        members,
       });
     }
   },
 
-  // Función para convertir número a palabras (básica)
-  convertirNumeroALetras(numero) {
-    const unidades = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-    const decenas = ['', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
-    const centenas = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
+  async updateMembershipQrPath(activeMembershipId, qrPath) {
+    return await MembershipModel.updateQrPath(activeMembershipId, qrPath);
+  },
 
-    if (numero === 0) return 'cero';
-    if (numero === 100) return 'cien';
-    
-    let resultado = '';
-    
-    // Simplificación básica - puedes expandir esto según necesites
-    if (numero < 10) {
-      resultado = unidades[numero];
-    } else if (numero < 100) {
-      const dec = Math.floor(numero / 10);
-      const uni = numero % 10;
-      if (numero >= 10 && numero < 20) {
-        const especiales = ['diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve'];
-        resultado = especiales[numero - 10];
-      } else {
-        resultado = decenas[dec] + (uni > 0 ? ' y ' + unidades[uni] : '');
-      }
-    } else if (numero < 1000) {
-      const cen = Math.floor(numero / 100);
-      const resto = numero % 100;
-      resultado = centenas[cen] + (resto > 0 ? ' ' + this.convertirNumeroALetras(resto) : '');
+  async recordPayment(paymentData) {
+    return await MembershipModel.recordPayment(paymentData);
+  },
+
+  async getPaidMembershipDetails(activeMembershipId) {
+    return await MembershipModel.getFullMembershipWithPayment(activeMembershipId);
+  },
+
+  async createFullMembership(data) {
+    const { clientId, membershipTypeId, startDate, endDate, finalPrice, members, paymentMethodId } = data;
+
+    const membershipId = await this.createMembershipContract({ clientId, membershipTypeId, startDate, endDate });
+    const activeMembershipId = await this.activateMembership({ clientId, membershipId, startDate, endDate, finalPrice });
+    await this.addFamilyMembers(activeMembershipId, members);
+
+    const { client, membershipType, members: membersFromDB } = await this.getMembershipDetails(clientId, membershipTypeId, activeMembershipId);
+
+    const qrPayload = await this.generateQRPayload(client, membershipType, startDate, endDate, membersFromDB);
+    const qrPath = await this.generateQRCode(qrPayload, activeMembershipId, client.fullName);
+
+    await this.updateMembershipQrPath(activeMembershipId, qrPath);
+
+    if (paymentMethodId) {
+      await this.recordPayment({ activeMembershipId, paymentMethodId, amount: finalPrice });
     }
-    
-    return resultado + ' pesos';
-  }
+
+    const completeMembership = await this.getPaidMembershipDetails(activeMembershipId);
+
+    await this.sendMembershipReceiptEmail(
+      client,
+      membershipType,
+      startDate,
+      endDate,
+      membersFromDB,
+      completeMembership.paymentMethod,
+      finalPrice
+    );
+
+    return {
+      activeMembershipId,
+      membershipId,
+      holder: client.fullName,
+      membershipType: membershipType.name,
+      startDate,
+      endDate,
+      finalPrice: parseFloat(finalPrice),
+      paymentMethod: completeMembership.paymentMethod || "Not specified",
+      members: membersFromDB,
+      qrPath,
+    };
+  },
 };

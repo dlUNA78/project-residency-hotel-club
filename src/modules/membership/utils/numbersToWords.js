@@ -1,72 +1,77 @@
-// utils/numberToWords.js
-export function numeroALetras(numero) {
-    const unidades = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-    const especiales = ['diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve'];
-    const decenas = ['', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
-    const centenas = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
-  
-    if (numero === 0) return 'cero pesos';
-    if (numero === 1) return 'un peso';
-    
-    let resultado = '';
-    
-    // Manejar miles
-    if (numero >= 1000) {
-      const miles = Math.floor(numero / 1000);
-      const resto = numero % 1000;
-      
-      if (miles === 1) {
-        resultado = 'mil';
-      } else {
-        resultado = convertirCentenas(miles) + ' mil';
-      }
-      
-      if (resto > 0) {
-        resultado += ' ' + convertirCentenas(resto);
-      }
+// utils/numbersToWords.js
+
+/**
+ * Converts the integer part of a number into its word representation in Spanish.
+ * e.g., 123 -> "ciento veintitrés pesos"
+ * @param {number} number - The number to convert.
+ * @param {string} currency - The currency name (e.g., "pesos").
+ * @returns {string} The number in words.
+ */
+export function numberToWords(number, currency = 'pesos') {
+  const integerPart = Math.floor(number);
+
+  if (integerPart === 0) return `cero ${currency}`;
+  if (integerPart === 1) return `un ${currency}`;
+
+  let words = '';
+
+  if (integerPart >= 1000) {
+    const thousands = Math.floor(integerPart / 1000);
+    const remainder = integerPart % 1000;
+
+    if (thousands === 1) {
+      words = 'mil';
     } else {
-      resultado = convertirCentenas(numero);
+      words = `${convertHundreds(thousands)} mil`;
     }
-    
-    return resultado + ' pesos';
+
+    if (remainder > 0) {
+      words += ` ${convertHundreds(remainder)}`;
+    }
+  } else {
+    words = convertHundreds(integerPart);
   }
-  
-  function convertirCentenas(numero) {
-    const unidades = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
-    const especiales = ['diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve'];
-    const decenas = ['', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
-    const centenas = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
-  
-    if (numero === 0) return '';
-    if (numero === 100) return 'cien';
-    
-    let resultado = '';
-    
-    // Centenas
-    if (numero >= 100) {
-      const cen = Math.floor(numero / 100);
-      resultado = centenas[cen];
-      numero = numero % 100;
-    }
-    
-    // Decenas y unidades
-    if (numero >= 20) {
-      const dec = Math.floor(numero / 10);
-      const uni = numero % 10;
-      
-      if (resultado) resultado += ' ';
-      resultado += decenas[dec];
-      
-      if (uni > 0) {
-        resultado += ' y ' + unidades[uni];
+
+  return `${words} ${currency}`;
+}
+
+/**
+ * Helper function to convert a number less than 1000 to words.
+ * @param {number} number - The number to convert (must be < 1000).
+ * @returns {string} The number in words.
+ */
+function convertHundreds(number) {
+  const units = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve'];
+  const teens = ['diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve'];
+  const tens = ['', '', 'veinte', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
+  const hundreds = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
+
+  if (number === 0) return '';
+  if (number === 100) return 'cien';
+
+  let words = '';
+  const hundred = Math.floor(number / 100);
+  const ten = Math.floor((number % 100) / 10);
+  const unit = number % 10;
+
+  if (hundred > 0) {
+    words += hundreds[hundred];
+  }
+
+  const remainder = number % 100;
+  if (remainder > 0) {
+    words += (hundred > 0 ? ' ' : '');
+    if (remainder < 10) {
+      words += units[remainder];
+    } else if (remainder < 20) {
+      words += teens[remainder - 10];
+    } else {
+      words += tens[ten];
+      if (unit > 0) {
+        words += ` y ${units[unit]}`;
       }
-    } else if (numero >= 10) {
-      if (resultado) resultado += ' ';
-      resultado += especiales[numero - 10];
-    } else if (numero > 0) {
-      if (resultado) resultado += ' ';
-      resultado += unidades[numero];
     }
-    
-    return resultado;
   }
+
+  return words;
+}

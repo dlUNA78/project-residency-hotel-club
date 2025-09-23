@@ -6,7 +6,6 @@ import session from "express-session";
 import { app } from "./src/config/app.js";
 import { routerGlobal } from "./src/router/routerGlobal.js";
 import routerLogin from "./src/modules/login/routers/routerLogin.js";
-import {membershipRoutes, membershipApiRoutes} from "./src/modules/membership/routes/index.js";
 import { routerRoom } from "./src/modules/rooms/routes/RouteRooms.js";
 
 // Configuración de variables para __dirname en módulos ES
@@ -30,17 +29,15 @@ app.use(
   })
 );
 
-// Iniciar el servidor
-app.listen(app.get("port"), () => {
-  app.use(routerGlobal);
-  console.log(`Servidor corriendo en el puerto: http://localhost:${app.get("port")}`);
-  app.use(routerLogin);
-  app.use("/memberships", membershipRoutes);
-  // Rutas API de modulo membresías
-  app.use("/api/memberships", membershipApiRoutes);
-  app.use(routerRoom);
+// Register all application routes
+app.use(routerGlobal);
 
-  console.log(
-    `Servidor corriendo en el puerto: http://localhost:${app.get("port")}`
-  );
+// The login and room routers are already included in routerGlobal,
+// so these lines might be redundant, but we'll keep them for safety.
+app.use(routerLogin);
+app.use(routerRoom);
+
+// Start the server
+app.listen(app.get("port"), () => {
+  console.log(`Server running on port: http://localhost:${app.get("port")}`);
 });

@@ -1,48 +1,33 @@
-// ===============================
-// RUTAS API DE MEMBRESÍAS (AJAX)
-// ===============================
-import express from "express";
-import { authMiddleware } from "../../login/middlewares/accessDenied.js";
-import { listMembershipController } from "../controllers/listMemberController.js";
-import { reportsController } from "../controllers/reportsController.js";
+import express from 'express';
+import { MembershipApiController } from '../controllers/membership.api.controller.js';
+import { requireAdmin } from '../../../middlewares/auth/roleHandler.js';
 
-const routerApi = express.Router();
+const router = express.Router();
 
-// Middleware global
-routerApi.use(authMiddleware);
+// Get all memberships (with filtering)
+router.get('/', MembershipApiController.getAllMemberships);
 
-// Helper para bind
-const bind = (controller, method) => controller[method].bind(controller);
+// Create a new client
+router.post('/client', MembershipApiController.createClient);
 
-// ===============================
-// RUTAS RELATIVAS
-// ===============================
+// Create a new membership
+router.post('/', MembershipApiController.createMembership);
 
-// Lista de membresías
-// URL final: GET /api/memberships/
-routerApi.get("/", bind(listMembershipController, "getMembresiasAPI"));
+// Get a single membership type's details
+router.get('/type/:id', MembershipApiController.getMembershipTypeById);
 
-// Estadísticas
-// URL final: GET /api/memberships/statistics
-routerApi.get("/statistics", bind(listMembershipController, "getEstadisticasAPI"));
+// Download a QR code
+router.get('/download-qr/:id', MembershipApiController.downloadQrCode);
 
-// Integrantes de una membresía activa
-// URL final: GET /api/memberships/:id_activa/integrantes
-routerApi.get("/:id_activa/integrantes", (req, res) =>
-  listMembershipController.getIntegrantesAPI(req, res)
-);
+// Update a membership (Admin only)
+router.put('/:id', requireAdmin, MembershipApiController.updateMembership);
 
-// Detalles de una membresía
-// URL final: GET /api/memberships/details/:id
-routerApi.get("/details/:id", (req, res) =>
-  listMembershipController.getMembershipDetailsAPI(req, res)
-);
+// Delete a membership (Admin only)
+router.delete('/:id', requireAdmin, MembershipApiController.deleteMembership);
 
-// Reportes
-// URL final: GET /api/memberships/reports/preview
-routerApi.get("/reports/preview", bind(reportsController, "getReportPreview"));
+// --- Reporting Routes (Admin only) ---
+router.get('/reports/preview', requireAdmin, MembershipApiController.getReportPreview);
+router.get('/reports/download', requireAdmin, MembershipApiController.downloadReportPdf);
 
-// URL final: GET /api/memberships/reports/download
-routerApi.get("/reports/download", bind(reportsController, "downloadReportPDF"));
 
-export { routerApi as membershipApiRoutes };
+export { router as membershipApiRoutes };

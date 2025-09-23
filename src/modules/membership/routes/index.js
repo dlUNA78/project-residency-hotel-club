@@ -1,4 +1,4 @@
-import { membershipRoutes } from "./membership.Routes.js";
+import { membershipViewRoutes } from "./membership.view.routes.js";
 import { membershipApiRoutes } from "./membership.api.routes.js";
 
-export { membershipRoutes, membershipApiRoutes };
+export { membershipViewRoutes, membershipApiRoutes };

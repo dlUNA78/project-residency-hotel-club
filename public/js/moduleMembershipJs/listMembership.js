@@ -1,481 +1,125 @@
-// Funciones de utilidad
-const MembershipUI = {
-  init: function () {
+/**
+ * UI and logic handler for the dynamic membership list page.
+ */
+const MembershipList = {
+  init() {
+    this.cacheDom();
     this.bindEvents();
-    this.applyInitialFormatting();
+    this.fetchAndRender();
   },
 
-  bindEvents: function () {
-    // Referencias a elementos del DOM
-    this.reportButton = document.getElementById("reportButton");
-    this.reportModal = document.getElementById("reportModal");
-    this.closeReportModal = document.getElementById("closeReportModal");
-    this.searchInput = document.getElementById("searchInput");
-    this.statusFilter = document.getElementById("statusFilter");
-    this.sortBy = document.getElementById("sortBy");
-    this.membershipRows = document.querySelectorAll(".membership-row");
+  cacheDom() {
+    this.tableBody = document.getElementById('memberships-table-body');
+    this.searchInput = document.getElementById('search-input');
+    this.statusFilter = document.getElementById('status-filter');
+    this.sortBy = document.getElementById('sort-by');
+    this.deleteModal = document.getElementById('delete-modal');
+    this.confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    this.cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+  },
 
-    // Modal de reportes para administradores
-    if (this.reportButton && this.reportModal && this.closeReportModal) {
-      this.reportButton.addEventListener("click", () => {
-        this.reportModal.classList.remove("hidden");
-      });
+  bindEvents() {
+    // Use debounce to avoid excessive API calls on input
+    this.searchInput.addEventListener('input', this.debounce(() => this.fetchAndRender(), 300));
+    this.statusFilter.addEventListener('change', () => this.fetchAndRender());
+    this.sortBy.addEventListener('change', () => this.fetchAndRender());
 
-      this.closeReportModal.addEventListener("click", () => {
-        this.reportModal.classList.add("hidden");
-      });
-
-      // Cerrar modal al hacer clic fuera del contenido
-      this.reportModal.addEventListener("click", (e) => {
-        if (e.target === this.reportModal) {
-          this.reportModal.classList.add("hidden");
-        }
-      });
-    }
-
-    // Búsqueda y filtros
-    if (this.searchInput) {
-      this.searchInput.addEventListener("input", () => {
-        this.filterMemberships();
-      });
-    }
-
-    if (this.statusFilter) {
-      this.statusFilter.addEventListener("change", () => {
-        this.filterMemberships();
-      });
-    }
-
-    if (this.sortBy) {
-      this.sortBy.addEventListener("change", () => {
-        this.filterMemberships();
-      });
-    }
-
-    // Delegación de eventos para el botón de ver integrantes
-    document.addEventListener('click', (e) => {
-      const viewMembersBtn = e.target.closest('.view-members-btn');
-      if (viewMembersBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        // Pasar el botón como contexto
-        this.handleViewMembersClick({ 
-          currentTarget: viewMembersBtn,
-          preventDefault: () => e.preventDefault(),
-          stopPropagation: () => e.stopPropagation()
-        });
-      }
-
-      const viewDetailsBtn = e.target.closest('.view-details-btn');
-      if (viewDetailsBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.handleViewDetailsClick({
-          currentTarget: viewDetailsBtn,
-          preventDefault: () => e.preventDefault(),
-          stopPropagation: () => e.stopPropagation()
-        });
+    // Event delegation for delete buttons
+    this.tableBody.addEventListener('click', e => {
+      if (e.target.closest('.delete-btn')) {
+        const button = e.target.closest('.delete-btn');
+        const id = button.dataset.id;
+        const name = button.dataset.name;
+        this.showDeleteModal(id, name);
       }
     });
+
+    this.cancelDeleteBtn.addEventListener('click', () => this.hideDeleteModal());
+    this.confirmDeleteBtn.addEventListener('click', () => this.handleDelete());
   },
 
-  applyInitialFormatting: function () {
-    // Iniciales de los nombres con avatar de gradiente
-    const initialElements = document.querySelectorAll("[data-initial]");
-    initialElements.forEach((element) => {
-      const name = element.getAttribute("data-initial");
-      element.textContent = this.getFirstLetter(name);
-    });
+  async fetchAndRender() {
+    const searchTerm = this.searchInput.value;
+    const status = this.statusFilter.value;
+    const sort = this.sortBy.value;
 
-    // Formatear todas las fechas en la tabla
-    const dateFields = document.querySelectorAll(".date-field");
-    dateFields.forEach((field) => {
-      const dateText = field.textContent.trim();
-      if (dateText && !isNaN(new Date(dateText).getTime())) {
-        field.textContent = this.formatDate(dateText);
-        field.setAttribute("data-original", dateText);
-      }
-    });
-  },
+    const query = new URLSearchParams({ searchTerm, status, sort });
+    this.tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-8">Loading...</td></tr>';
 
-  getFirstLetter: function (name) {
-    return name ? name.charAt(0).toUpperCase() : "";
-  },
+    try {
+      const response = await fetch(`/api/memberships?${query}`);
+      if (!response.ok) throw new Error('Failed to fetch memberships.');
 
-  formatDate: function (dateString) {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const year = date.getFullYear().toString().slice(-2);
-    return `${day}/${month}/${year}`;
-  },
-
-  
-  showIntegrantesModal: function (integrantes) {
-    // Verificar si hay integrantes
-    if (!integrantes || integrantes.length === 0) {
-      this.showMessage(
-        "Esta membresía no tiene integrantes registrados",
-        "info"
-      );
-      return;
+      const memberships = await response.json();
+      this.renderTable(memberships);
+    } catch (error) {
+      this.tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-red-500">Error: ${error.message}</td></tr>`;
     }
+  },
 
-    const modalHtml = `
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 integrantes-modal">
-            <div class="bg-white rounded-2xl p-6 w-11/12 md:w-96 max-w-90vw">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-users mr-2 text-purple-500"></i>Integrantes de la Membresía
-                </h3>
-                <div class="max-h-60 overflow-y-auto">
-                    <table class="min-w-full">
-                        <thead>
-                            <tr>
-                                <th class="text-left text-sm font-medium text-purple-700 py-2">Nombre</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            ${integrantes
-                              .map(
-                                (int) => `
-                                <tr>
-                                    <td class="py-2">
-                                        <div class="flex items-center">
-                                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                                                <span class="text-purple-600 font-bold">${this.getFirstLetter(
-                                                  int.nombre_completo
-                                                )}</span>
-                                            </div>
-                                            <span class="text-sm text-gray-700">${
-                                              int.nombre_completo ||
-                                              "Sin nombre"
-                                            }</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            `
-                              )
-                              .join("")}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-4 flex justify-end">
-                    <button class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors close-integrantes-modal">
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Remover modal existente si hay uno
-    const existingModal = document.querySelector(".integrantes-modal");
-    if (existingModal) {
-      existingModal.remove();
+  renderTable(memberships) {
+    this.tableBody.innerHTML = ''; // Clear existing rows
+    if (memberships.length === 0) {
+        this.tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-8">No memberships found.</td></tr>';
+        return;
     }
-
-    // Insertar el modal en el documento
-    document.body.insertAdjacentHTML("beforeend", modalHtml);
-
-    // Cerrar modal al hacer clic en el botón de cerrar
-    document
-      .querySelector(".close-integrantes-modal")
-      .addEventListener("click", function () {
-        document.querySelector(".integrantes-modal").remove();
-      });
-
-    // Cerrar modal al hacer clic fuera del contenido
-    document
-      .querySelector(".integrantes-modal")
-      .addEventListener("click", function (e) {
-        if (e.target === this) {
-          this.remove();
-        }
-      });
-
-    // Cerrar modal con la tecla ESC
-    document.addEventListener("keydown", function handleEsc(e) {
-      if (e.key === "Escape") {
-        const modal = document.querySelector(".integrantes-modal");
-        if (modal) {
-          modal.remove();
-          document.removeEventListener("keydown", handleEsc);
-        }
-      }
+    memberships.forEach(m => {
+      const row = document.createElement('tr');
+      row.className = 'hover:bg-gray-50';
+      row.innerHTML = `
+        <td class="px-6 py-4 whitespace-nowrap">${m.holderName}</td>
+        <td class="px-4 py-4 whitespace-nowrap">${m.membershipType}</td>
+        <td class="px-4 py-4 whitespace-nowrap">${new Date(m.startDate).toLocaleDateString()} - ${new Date(m.endDate).toLocaleDateString()}</td>
+        <td class="px-4 py-4 whitespace-nowrap">${m.status} (${m.daysRemaining} days)</td>
+        <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+          <a href="/memberships/edit/${m.activeMembershipId}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+          <button data-id="${m.activeMembershipId}" data-name="${m.holderName}" class="delete-btn text-red-600 hover:text-red-900 ml-4">Delete</button>
+        </td>
+      `;
+      this.tableBody.appendChild(row);
     });
   },
 
-  showDetailsModal: function (details) {
-    const modalHtml = `
-      <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 details-modal">
-        <div class="bg-white rounded-2xl p-8 w-11/12 md:w-1/2 max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div class="flex justify-between items-center mb-6">
-            <h3 class="text-2xl font-bold text-gray-800">
-              <i class="fas fa-id-card-alt mr-3 text-green-500"></i>Detalles de la Membresía
-            </h3>
-            <button class="text-gray-500 hover:text-gray-800 transition-colors close-details-modal">
-              <i class="fas fa-times text-2xl"></i>
-            </button>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Columna de Información -->
-            <div class="space-y-4">
-              <div>
-                <p class="text-sm font-semibold text-gray-500">Titular</p>
-                <p class="text-lg font-medium text-gray-900">${details.nombre_completo}</p>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-gray-500">Tipo de Membresía</p>
-                <p class="text-lg font-medium text-gray-900">${details.tipo_membresia}</p>
-              </div>
-              <div>
-                <p class="text-sm font-semibold text-gray-500">Periodo</p>
-                <p class="text-lg font-medium text-gray-900">
-                  ${this.formatDate(details.fecha_inicio)} - ${this.formatDate(details.fecha_fin)}
-                </p>
-              </div>
-              ${details.integrantes && details.integrantes.length > 0 ? `
-                <div>
-                  <p class="text-sm font-semibold text-gray-500">Integrantes</p>
-                  <ul class="list-disc list-inside mt-1 space-y-1">
-                    ${details.integrantes.map(int => `<li class="text-gray-700">${int.nombre_completo}</li>`).join('')}
-                  </ul>
-                </div>
-              ` : ''}
-              ${details.pagos && details.pagos.length > 0 ? `
-                <div>
-                  <p class="text-sm font-semibold text-gray-500">Último Pago</p>
-                  <p class="text-lg font-medium text-gray-900">$${details.pagos[0].monto} (${details.pagos[0].metodo_pago})</p>
-                </div>
-              ` : ''}
-            </div>
-
-            <!-- Columna de QR -->
-            <div class="flex flex-col items-center justify-center bg-gray-50 p-6 rounded-xl">
-              <img src="${details.qr_path}?t=${new Date().getTime()}" alt="Código QR" class="w-48 h-48">
-              ${details.isAdmin ? `
-                <a href="${details.qr_path}" download="qr-membresia-${details.id_activa}.png" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                  <i class="fas fa-download mr-2"></i>Descargar QR
-                </a>
-              ` : ''}
-            </div>
-          </div>
-
-          <div class="mt-8 flex justify-end">
-            <button class="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors close-details-modal">
-              Cerrar
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const existingModal = document.querySelector(".details-modal");
-    if (existingModal) {
-      existingModal.remove();
-    }
-
-    document.body.insertAdjacentHTML("beforeend", modalHtml);
-
-    document.querySelectorAll(".close-details-modal").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelector(".details-modal").remove();
-      });
-    });
-
-    document.querySelector(".details-modal").addEventListener("click", function (e) {
-      if (e.target === this) {
-        this.remove();
-      }
-    });
+  showDeleteModal(id, name) {
+    this.membershipIdToDelete = id;
+    this.deleteModal.querySelector('p').innerHTML = `Are you sure you want to delete the membership for <strong>${name}</strong>? This action cannot be undone.`;
+    this.deleteModal.classList.remove('hidden');
   },
 
-  handleViewDetailsClick: function (e) {
-    const button = e.currentTarget;
-    const id = button.getAttribute("data-id");
+  hideDeleteModal() {
+    this.membershipIdToDelete = null;
+    this.deleteModal.classList.add('hidden');
+  },
 
-    if (!id) {
-      console.error("No se encontró el ID de la membresía");
-      return;
-    }
+  async handleDelete() {
+    if (!this.membershipIdToDelete) return;
 
-    const originalHtml = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    this.confirmDeleteBtn.disabled = true;
+    this.confirmDeleteBtn.textContent = 'Deleting...';
 
-    fetch(`/api/memberships/details/${id}`)
-      .then(response => {
+    try {
+        const response = await fetch(`/api/memberships/${this.membershipIdToDelete}`, { method: 'DELETE' });
         if (!response.ok) {
-          throw new Error('Error al cargar los detalles');
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to delete.');
         }
-        return response.json();
-      })
-      .then(details => {
-        this.showDetailsModal(details);
-      })
-      .catch(error => {
-        console.error("Error al obtener detalles de la membresía:", error);
-      })
-      .finally(() => {
-        button.innerHTML = originalHtml;
-        button.disabled = false;
-      });
-  },
-
-  handleViewMembersClick: function (e) {
-    const button = e.currentTarget;
-    const idActiva = button.getAttribute("data-id-activa");
-    console.log("BOTON PRESIONADO")
-    console.log("ID ACTIVA ->", idActiva);
-
-    if (!idActiva) {
-      console.error("No se encontró el ID de la membresía activa");
-      this.showMessage("No se pudo obtener la información de la membresía", "error");
-      return;
+        this.hideDeleteModal();
+        this.fetchAndRender(); // Re-fetch the list
+    } catch (error) {
+        alert(`Error: ${error.message}`); // Simple error display
+    } finally {
+        this.confirmDeleteBtn.disabled = false;
+        this.confirmDeleteBtn.textContent = 'Delete';
     }
-
-    // Mostrar indicador de carga
-    const originalHtml = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-    // Hacemos la llamada a la API
-    fetch(`/api/memberships/${idActiva}/integrantes`, {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      credentials: 'same-origin' // Asegura que las cookies se envíen con la solicitud
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-      })
-      .then((integrantes) => {
-        console.log("Integrantes recibidos:", integrantes);
-        this.showIntegrantesModal(integrantes);
-      })
-      .catch((error) => {
-        console.error("Error al obtener integrantes:", error);
-        this.showMessage(`Error al cargar los integrantes: ${error.message}`, "error");
-      })
-      .finally(() => {
-        // Restaurar el botón a su estado original
-        button.innerHTML = originalHtml;
-        button.disabled = false;
-      });
   },
 
-  filterMemberships: function () {
-    const searchTerm = this.searchInput
-      ? this.searchInput.value.toLowerCase()
-      : "";
-    const statusValue = this.statusFilter ? this.statusFilter.value : "all";
-    const sortValue = this.sortBy ? this.sortBy.value : "expiry";
-
-    this.membershipRows.forEach((row) => {
-      const text = row.textContent.toLowerCase();
-      const statusBadge = row.querySelector(".status-badge");
-      let statusMatch = true;
-
-      // Filtrar por estado
-      if (statusValue !== "all") {
-        if (statusValue === "active") {
-          statusMatch =
-            statusBadge &&
-            statusBadge.textContent.includes("Activa") &&
-            !statusBadge.textContent.includes("Vencida");
-        } else if (statusValue === "expiring") {
-          statusMatch =
-            statusBadge && statusBadge.textContent.includes("vencer");
-        } else if (statusValue === "expired") {
-          statusMatch =
-            statusBadge && statusBadge.textContent.includes("Vencida");
-        }
-      }
-
-      // Filtrar por término de búsqueda
-      const searchMatch = searchTerm === "" || text.includes(searchTerm);
-
-      // Mostrar u ocultar fila según los filtros
-      if (searchMatch && statusMatch) {
-        row.style.display = "";
-        row.classList.add("bg-green-100");
-        setTimeout(() => row.classList.remove("bg-green-100"), 1000);
-      } else {
-        row.style.display = "none";
-      }
-    });
-
-    // Ordenar resultados
-    this.sortTable(sortValue);
-  },
-
-  sortTable: function (criteria) {
-    const tbody = document.getElementById("membershipsTableBody");
-    if (!tbody) return;
-
-    const rows = Array.from(tbody.querySelectorAll(".membership-row"));
-
-    rows.sort((a, b) => {
-      if (criteria === "name") {
-        const nameElementA = a.querySelector(".text-sm.font-semibold");
-        const nameElementB = b.querySelector(".text-sm.font-semibold");
-        const nameA = nameElementA
-          ? nameElementA.textContent.toLowerCase()
-          : "";
-        const nameB = nameElementB
-          ? nameElementB.textContent.toLowerCase()
-          : "";
-        return nameA.localeCompare(nameB);
-      } else if (criteria === "recent") {
-        const dateFieldsA = a.querySelectorAll(".date-field");
-        const dateFieldsB = b.querySelectorAll(".date-field");
-        const dateA =
-          dateFieldsA.length > 0
-            ? new Date(dateFieldsA[0].getAttribute("data-original"))
-            : new Date(0);
-        const dateB =
-          dateFieldsB.length > 0
-            ? new Date(dateFieldsB[0].getAttribute("data-original"))
-            : new Date(0);
-        return dateB - dateA;
-      } else {
-        // expiry por defecto
-        const statusBadgeA = a.querySelector(".status-badge");
-        const statusBadgeB = b.querySelector(".status-badge");
-        const daysA = this.extractDays(
-          statusBadgeA ? statusBadgeA.textContent : ""
-        );
-        const daysB = this.extractDays(
-          statusBadgeB ? statusBadgeB.textContent : ""
-        );
-        return daysA - daysB;
-      }
-    });
-
-    // Limpiar y reordenar la tabla
-    rows.forEach((row) => tbody.appendChild(row));
-  },
-
-  extractDays: function (text) {
-    if (!text) return 999;
-
-    const match = text.match(/(\d+)\s*días/);
-    if (match) return parseInt(match[1]);
-
-    if (text.includes("Vencida")) return -1;
-    if (text.includes("Inactiva")) return -2;
-
-    return 999; // Para membresías activas sin contador específico
-  },
+  debounce(func, delay) {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+  }
 };
 
-// Inicializar cuando el DOM esté listo
-document.addEventListener("DOMContentLoaded", function () {
-  MembershipUI.init();
-});
+document.addEventListener('DOMContentLoaded', () => MembershipList.init());

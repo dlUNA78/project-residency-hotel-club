@@ -1,0 +1,20 @@
+
+> dev-project-residency-hotel-club@1.0.0 dev
+> nodemon index.js
+
+[33m[nodemon] 3.1.10[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node index.js`[39m
+file:///app/index.js:9
+import {membershipRoutes, membershipApiRoutes} from "./src/modules/membership/routes/index.js";
+        ^^^^^^^^^^^^^^^^
+SyntaxError: The requested module './src/modules/membership/routes/index.js' does not provide an export named 'membershipRoutes'
+    at ModuleJob._instantiate (node:internal/modules/esm/module_job:220:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:321:5)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.17.1
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
