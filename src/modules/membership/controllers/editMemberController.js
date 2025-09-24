@@ -1,4 +1,4 @@
-import { MembershipModel } from "../models/modelMembership.js";
+import { MembershipModel } from "../models/membershipModel.js";
 import { updateMembershipById } from "../models/modelEdit.js";
 
 export const editMemberController = {

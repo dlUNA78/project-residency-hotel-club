@@ -1,13 +1,13 @@
-// models/modelMembership.js
+// models/membershipModel.js
 import { pool } from "../../../dataBase/conecctionDataBase.js";
 
 const MembershipModel = {
-  async createClient({ nombre_completo, telefono, correo }) {
+  async createClient({ fullName, phone, email }) {
     try {
       const [result] = await pool.query(
         `INSERT INTO clientes (nombre_completo, telefono, correo)
          VALUES (?, ?, ?)`,
-        [nombre_completo, telefono, correo]
+        [fullName, phone, email]
       );
 
       if (!result || (result.affectedRows === 0 && !result.insertId)) {
@@ -15,8 +15,7 @@ const MembershipModel = {
       }
 
       return {
-        id_cliente: result.insertId,
-        insertId: result.insertId,
+        clientId: result.insertId
       };
     } catch (error) {
       console.error("Error en createClient del modelo:", error);
@@ -77,28 +76,29 @@ const MembershipModel = {
     return result.affectedRows > 0;
   },
 
-  async addFamilyMembers(id_activa, integrantes) {
-    for (let integrante of integrantes) {
+  async addFamilyMembers(activeMembershipId, familyMembers) {
+    for (let member of familyMembers) {
       await pool.query(
         `INSERT INTO integrantes_membresia (id_activa, nombre_completo)
          VALUES (?, ?)`,
-        [id_activa, integrante.nombre_completo]
+        [activeMembershipId, member.fullName]
       );
     }
   },
 
-  async getTiposMembresia() {
+  async getMembershipTypes() {
     const [rows] = await pool.query(
-      `SELECT id_tipo_membresia, nombre, precio, max_integrantes 
+      `SELECT id_tipo_membresia as membershipTypeId, nombre as name, precio as price, max_integrantes as maxMembers
        FROM tipos_membresia 
        ORDER BY nombre`
     );
     return rows;
   },
 
-  async getTipoMembresiaById(id) {
+  async getMembershipTypeById(id) {
     const [rows] = await pool.query(
-      `SELECT * FROM tipos_membresia WHERE id_tipo_membresia = ?`,
+      `SELECT id_tipo_membresia as membershipTypeId, nombre as name, precio as price, max_integrantes as maxMembers
+       FROM tipos_membresia WHERE id_tipo_membresia = ?`,
       [id]
     );
     return rows[0] || null;
@@ -120,37 +120,37 @@ const MembershipModel = {
     return rows;
   },
 
-  async getClienteById(id_cliente) {
+  async getClientById(clientId) {
     const [rows] = await pool.query(
-      `SELECT id_cliente, nombre_completo, correo, telefono
+      `SELECT id_cliente as clientId, nombre_completo as fullName, correo as email, telefono as phone
        FROM clientes WHERE id_cliente = ?`,
-      [id_cliente]
+      [clientId]
     );
     return rows[0] || null;
   },
 
-  async getIntegrantesByActiva(id_activa) {
+  async getFamilyMembersByMembershipId(activeMembershipId) {
     const [rows] = await pool.query(
-      `SELECT nombre_completo
+      `SELECT nombre_completo as fullName
        FROM integrantes_membresia 
        WHERE id_activa = ?`,
-      [id_activa]
+      [activeMembershipId]
     );
     return rows;
   },
 
-  async recordPayment({ id_activa, id_metodo_pago, monto }) {
+  async recordPayment({ activeMembershipId, paymentMethodId, amount }) {
     const [result] = await pool.query(
       `INSERT INTO pagos (id_activa, id_metodo_pago, monto)
        VALUES (?, ?, ?)`,
-      [id_activa, id_metodo_pago, monto]
+      [activeMembershipId, paymentMethodId, amount]
     );
     return result.insertId;
   },
 
-  async getMetodosPago() {
+  async getPaymentMethods() {
     const [rows] = await pool.query(
-      `SELECT id_metodo_pago, nombre FROM metodos_pago ORDER BY nombre`
+      `SELECT id_metodo_pago as paymentMethodId, nombre as name FROM metodos_pago ORDER BY nombre`
     );
     return rows;
   },
@@ -246,7 +246,7 @@ const MembershipModel = {
       const membresia = membresias[0];
       
       if (membresia.max_integrantes > 1) {
-        membresia.integrantes = await this.getIntegrantesByActiva(id);
+        membresia.integrantes = await this.getFamilyMembersByMembershipId(id);
       } else {
         membresia.integrantes = [];
       }
@@ -297,7 +297,7 @@ const MembershipModel = {
       const membresia = rows[0];
       
       if (membresia.max_integrantes > 1) {
-        membresia.integrantes = await this.getIntegrantesByActiva(id_activa);
+        membresia.integrantes = await this.getFamilyMembersByMembershipId(id_activa);
       } else {
         membresia.integrantes = [];
       }

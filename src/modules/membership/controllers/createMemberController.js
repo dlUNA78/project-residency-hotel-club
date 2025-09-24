@@ -1,25 +1,20 @@
 // controllers/createMemberController.js
 import { ClientService } from "../services/clientService.js";
 import { MembershipService } from "../services/membershipService.js";
-import { MembershipModel } from "../models/modelMembership.js";
+import { MembershipModel } from "../models/membershipModel.js";
 import path from "path";
 import fs from "fs";
-import { generarQRArchivo } from "../utils/qrGenerator.js";
 import { fileURLToPath } from "url";
-
-// Para usar __dirname en ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const MembershipController = {
   // Crear cliente principal
   async createClient(req, res) {
     try {
-      const { nombre_completo, correo, telefono } = req.body;
+      const { fullName, email, phone } = req.body;
       const result = await ClientService.createClient({
-        nombre_completo,
-        correo,
-        telefono,
+        fullName,
+        email,
+        phone,
       });
       res.json(result);
     } catch (err) {
@@ -34,104 +29,91 @@ const MembershipController = {
   async createMembership(req, res) {
     try {
       const {
-        id_cliente,
-        id_tipo_membresia,
-        fecha_inicio,
-        fecha_fin,
-        precio_final,
-        integrantes,
-        metodo_pago,
+        clientId,
+        membershipTypeId,
+        startDate,
+        endDate,
+        finalPrice,
+        familyMembers,
+        paymentMethodId,
       } = req.body;
 
-      // 1️⃣ Crear contrato en membresias
-      const id_membresia = await MembershipService.createMembershipContract({
-        id_cliente,
-        id_tipo_membresia,
-        fecha_inicio,
-        fecha_fin,
+      const membershipId = await MembershipService.createMembershipContract({
+        clientId,
+        membershipTypeId,
+        startDate,
+        endDate,
       });
 
-      // 2️⃣ Activar membresía (sin QR path inicialmente)
-      const id_activa = await MembershipService.activateMembership({
-        id_cliente,
-        id_membresia,
-        fecha_inicio,
-        fecha_fin,
-        precio_final,
+      const activeMembershipId = await MembershipService.activateMembership({
+        clientId,
+        membershipId,
+        startDate,
+        endDate,
+        finalPrice,
       });
 
-      // 3️⃣ Registrar integrantes (si es familiar)
-      await MembershipService.addFamilyMembers(id_activa, integrantes);
+      await MembershipService.addFamilyMembers(activeMembershipId, familyMembers);
 
-      // 4️⃣ Obtener datos para el QR
-      const { cliente, tipo, integrantesDB } =
-        await MembershipService.getMembershipDetails(
-          id_cliente,
-          id_tipo_membresia,
-          id_activa
+      const { client, type, familyMembers: membersFromDB } =
+        await MembershipService.getMembershipDetailsForCreation(
+          clientId,
+          membershipTypeId,
+          activeMembershipId
         );
 
-      // 5️⃣ Armar payload del QR
-      const payloadQR = await MembershipService.generateQRPayload(
-        cliente,
-        tipo,
-        fecha_inicio,
-        fecha_fin,
-        integrantesDB
+      const qrPayload = await MembershipService.generateQRPayload(
+        client,
+        type,
+        startDate,
+        endDate,
+        membersFromDB
       );
 
-      console.log("📋 Payload QR generado:", payloadQR);
-
-      // 6️⃣ Generar archivo PNG del QR
       const qrPath = await MembershipService.generateQRCode(
-        payloadQR,
-        id_activa,
-        cliente.nombre_completo
+        qrPayload,
+        activeMembershipId,
+        client.fullName
       );
 
-      // 7️⃣ Actualizar la ruta del QR en la base de datos (debe ser ruta relativa)
-      await MembershipModel.updateQRPath(id_activa, qrPath);
+      await MembershipModel.updateQRPath(activeMembershipId, qrPath);
 
-      // 8️⃣ Registrar el pago
-      if (metodo_pago) {
+      if (paymentMethodId) {
         await MembershipModel.recordPayment({
-          id_activa,
-          id_metodo_pago: metodo_pago,
-          monto: precio_final,
+          activeMembershipId,
+          paymentMethodId,
+          amount: finalPrice,
         });
       }
 
-      // 9️⃣ Obtener información completa para el modal
-      const membresiaCompleta = await MembershipModel.getMembresiaConPago(
-        id_activa
+      const fullMembership = await MembershipModel.getMembresiaConPago(
+        activeMembershipId
       );
 
-      // 🔟 Enviar email de comprobante (sin QR)
-      await MembershipService.sendMembershipReceiptEmail(
-        cliente,
-        tipo,
-        fecha_inicio,
-        fecha_fin,
-        integrantesDB,
-        membresiaCompleta.metodo_pago,
-        precio_final
-      );
+      await MembershipService.sendMembershipReceiptEmail({
+        client,
+        type,
+        startDate,
+        endDate,
+        familyMembers: membersFromDB,
+        paymentMethod: fullMembership.metodo_pago,
+        finalPrice,
+      });
 
-      // Responder con la información completa para el modal
       res.json({
         success: true,
         message: "Membresía creada exitosamente",
         data: {
-          id_activa: id_activa,
-          id_membresia: id_membresia,
-          titular: cliente.nombre_completo,
-          tipo_membresia: tipo.nombre,
-          fecha_inicio: fecha_inicio,
-          fecha_fin: fecha_fin,
-          precio_final: parseFloat(precio_final),
-          metodo_pago: membresiaCompleta.metodo_pago || "No especificado",
-          integrantes: integrantesDB,
-          qr_path: qrPath,
+          activeMembershipId,
+          membershipId,
+          holder: client.fullName,
+          membershipType: type.name,
+          startDate,
+          endDate,
+          finalPrice: parseFloat(finalPrice),
+          paymentMethod: fullMembership.metodo_pago || "No especificado",
+          familyMembers: membersFromDB,
+          qrPath,
         },
       });
     } catch (err) {
@@ -146,31 +128,27 @@ const MembershipController = {
 
   // Método para descargar el QR - CORREGIDO para usar uploads/qrs/
   // Método para descargar el QR - CORREGIDO para usar public/uploads/qrs/
-  async downloadQR(req, res) {
+  async downloadQr(req, res) {
     try {
-      const { id_activa } = req.params;
-      const membresia = await MembershipModel.getMembresiaById(id_activa);
+      const { activeMembershipId } = req.params;
+      const membership = await MembershipModel.getMembresiaById(activeMembershipId);
 
-      if (!membresia || !membresia.qr_path) {
+      if (!membership || !membership.qr_path) {
         return res
           .status(404)
-          .json({ error: "QR no encontrado en la base de datos" });
+          .json({ error: "QR not found in database" });
       }
 
-      // La ruta en la BD es relativa (ej: "/uploads/qrs/qr_31_nombre.png")
-      // Construir la ruta absoluta: public + ruta_relativa
-      const qrFullPath = path.join(process.cwd(), "public", membresia.qr_path);
-
-      console.log("Buscando QR en:", qrFullPath);
+      const qrFullPath = path.join(process.cwd(), "public", membership.qr_path);
 
       if (!fs.existsSync(qrFullPath)) {
-        console.error("Archivo no encontrado en:", qrFullPath);
+        console.error("File not found at:", qrFullPath);
         return res
           .status(404)
-          .json({ error: "Archivo QR no encontrado en el servidor" });
+          .json({ error: "QR file not found on server" });
       }
 
-      const filename = `membresia_${id_activa}_qr.png`;
+      const filename = `membership_${activeMembershipId}_qr.png`;
 
       // Configurar headers para descarga
       res.setHeader(
@@ -188,40 +166,40 @@ const MembershipController = {
     }
   },
 
-  async getTipoMembresiaById(req, res) {
+  async getMembershipTypeById(req, res) {
     try {
       const { id } = req.params;
-      const tipo = await MembershipModel.getTipoMembresiaById(id);
-      if (!tipo)
-        return res.status(404).json({ error: "Membresía no encontrada" });
-      res.json(tipo);
+      const type = await MembershipModel.getMembershipTypeById(id);
+      if (!type)
+        return res.status(404).json({ error: "Membership type not found" });
+      res.json(type);
     } catch (err) {
-      console.error("Error obteniendo tipo de membresía:", err);
-      res.status(500).json({ error: "Error del servidor" });
+      console.error("Error getting membership type:", err);
+      res.status(500).json({ error: "Server error" });
     }
   },
 
-  async renderTiposMembresia(req, res) {
+  async renderCreatePage(req, res) {
     try {
       const userRole = req.session.user?.role || "Recepcionista";
       const isAdmin = userRole === "Administrador";
-      const tiposMembresia = await MembershipModel.getTiposMembresia();
-      const tiposPago = await MembershipModel.getMetodosPago();
-      const precioFamiliar = await MembershipModel.getPrecioFamiliar?.();
+      const membershipTypes = await MembershipModel.getMembershipTypes();
+      const paymentMethods = await MembershipModel.getPaymentMethods();
+      const familyPrice = await MembershipModel.getPrecioFamiliar?.(); // This method is out of scope for now
 
       res.render("membershipCreate", {
         title: "Crear Membresía",
         showFooter: true,
         isAdmin,
         userRole,
-        tiposMembresia,
-        tiposPago,
-        precioFamiliar,
+        membershipTypes,
+        paymentMethods,
+        familyPrice,
         apiBase: "/memberships",
       });
     } catch (error) {
-      console.error("Error al cargar tipos de membresía:", error);
-      res.status(500).send("Error al cargar tipos de membresía");
+      console.error("Error loading create membership page:", error);
+      res.status(500).send("Error loading page");
     }
   },
 };

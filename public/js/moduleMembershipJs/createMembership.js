@@ -1,766 +1,263 @@
-// Funciones de utilidad
-const MembershipUI = {
+const CreateMembershipUI = {
   init: function () {
+    this.cacheDOM();
     this.bindEvents();
     this.setMinDate();
     this.triggerInitialEvents();
   },
 
-  bindEvents: function () {
-    // Referencias a elementos del DOM
-    this.formCliente = document.getElementById("form-cliente");
-    this.formMembership = document.getElementById("createMemberForm");
-    this.clienteMessage = document.getElementById("cliente-message");
+  cacheDOM: function () {
+    this.clientForm = document.getElementById("client-form");
+    this.membershipForm = document.getElementById("membership-form");
+    this.clientMessage = document.getElementById("client-message");
     this.membershipMessage = document.getElementById("membership-message");
-    this.idClienteInput = document.getElementById("id_cliente");
-    this.submitMembershipBtn = document.getElementById("submit-membership");
-    this.tipoMembresiaSelect = document.getElementById("tipoMembresia");
-    this.integrantesSection = document.getElementById("integrantesSection");
-    this.integrantesContainer = document.getElementById("integrantesContainer");
-    this.addIntegranteBtn = document.getElementById("addIntegranteBtn");
-    this.precioFinalInput = document.getElementById("precioFinal");
-    this.precioFinalHidden = document.getElementById("precio_final");
-    this.fechaInicioInput = document.getElementById("fecha_inicio");
-    this.fechaFinInput = document.getElementById("fecha_fin");
-    this.descuentoInput = document.getElementById("descuento");
-    this.aplicarDescuentoBtn = document.getElementById("aplicarDescuentoBtn");
-    this.clienteModal = document.getElementById("clienteModal");
-    this.clienteModalContent = document.getElementById("clienteModalContent");
-    this.cancelClienteBtn = document.getElementById("cancelClienteBtn");
-    this.confirmClienteBtn = document.getElementById("confirmClienteBtn");
-    this.membershipModal = document.getElementById("membershipModal");
-    this.membershipModalContent = document.getElementById(
-      "membershipModalContent"
-    );
-    this.cancelMembershipBtn = document.getElementById("cancelMembershipBtn");
-    this.confirmMembershipBtn = document.getElementById("confirmMembershipBtn");
+    this.clientIdInput = document.getElementById("clientId");
+    this.submitMembershipBtn = document.getElementById("submit-membership-btn");
+    this.membershipTypeSelect = document.getElementById("membershipType");
+    this.familyMembersSection = document.getElementById("family-members-section");
+    this.familyMembersContainer = document.getElementById("family-members-container");
+    this.addFamilyMemberBtn = document.getElementById("add-family-member-btn");
+    this.finalPriceDisplay = document.getElementById("final-price-display");
+    this.finalPriceInput = document.getElementById("finalPrice");
+    this.startDateInput = document.getElementById("startDate");
+    this.endDateInput = document.getElementById("endDate");
+    this.discountInput = document.getElementById("discount");
+    this.applyDiscountBtn = document.getElementById("apply-discount-btn");
+    this.clientModal = document.getElementById("client-modal");
+    this.clientModalContent = document.getElementById("client-modal-content");
+    this.cancelClientBtn = document.getElementById("cancel-client-btn");
+    this.confirmClientBtn = document.getElementById("confirm-client-btn");
+    this.membershipModal = document.getElementById("membership-modal");
+    this.membershipModalContent = document.getElementById("membership-modal-content");
+    this.cancelMembershipBtn = document.getElementById("cancel-membership-btn");
+    this.confirmMembershipBtn = document.getElementById("confirm-membership-btn");
+  },
 
-    // Variables de estado
-    this.maxIntegrantes = 1;
-    this.clienteRegistrado = false;
-    this.duracionDias = 30;
-    this.precioBase = 0;
-    this.descuentoAplicado = 0;
-    this.procesandoCliente = false; // ← Nueva variable
-    this.procesandoMembresia = false; // ← Nueva variable
+  bindEvents: function () {
+    this.maxMembers = 1;
+    this.isClientRegistered = false;
+    this.membershipDurationDays = 30;
+    this.basePrice = 0;
+    this.appliedDiscount = 0;
+    this.isClientProcessing = false;
+    this.isMembershipProcessing = false;
 
-    // Manejar envío del formulario de cliente
-    if (this.formCliente) {
-      this.formCliente.addEventListener("submit", (e) => {
-        e.preventDefault();
-        if (this.procesandoCliente) {
-          console.log("⚠️ Ya se está procesando un cliente, ignorando envío");
-          return;
-        }
-        this.mostrarModalCliente();
-      });
-    }
+    this.clientForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (this.isClientProcessing) return;
+      this.showClientModal();
+    });
 
-    // Confirmar creación de cliente
-    if (this.confirmClienteBtn) {
-      this.confirmClienteBtn.addEventListener("click", () => {
-        if (this.procesandoCliente) {
-          console.log("⚠️ Ya se está procesando un cliente, ignorando clic");
-          return;
-        }
-        this.confirmarCliente();
-      });
-    }
+    this.confirmClientBtn?.addEventListener("click", () => {
+      if (this.isClientProcessing) return;
+      this.confirmClientCreation();
+    });
 
-    // Cancelar creación de cliente
-    if (this.cancelClienteBtn) {
-      this.cancelClienteBtn.addEventListener("click", () => {
-        this.clienteModal.classList.add("hidden");
-      });
-    }
+    this.cancelClientBtn?.addEventListener("click", () => {
+      this.clientModal.classList.add("hidden");
+    });
 
-    // Manejar envío del formulario de membresía
-    if (this.formMembership) {
-      this.formMembership.addEventListener("submit", (e) => {
-        e.preventDefault();
-        if (this.procesandoMembresia) {
-          console.log(
-            "⚠️ Ya se está procesando una membresía, ignorando envío"
-          );
-          return;
-        }
-        if (!this.clienteRegistrado) {
-          this.showMessage(
-            this.membershipMessage,
-            "Debe registrar un cliente primero",
-            "error"
-          );
-          return;
-        }
-        this.mostrarModalMembresia();
-      });
-    }
+    this.membershipForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (this.isMembershipProcessing || !this.isClientRegistered) return;
+      this.showMembershipModal();
+    });
 
-    // Confirmar creación de membresía
-    if (this.confirmMembershipBtn) {
-      this.confirmMembershipBtn.addEventListener("click", () => {
-        if (this.procesandoMembresia) {
-          console.log("⚠️ Ya se está procesando una membresía, ignorando clic");
-          return;
-        }
-        this.confirmarMembresia();
-      });
-    }
+    this.confirmMembershipBtn?.addEventListener("click", () => {
+      if (this.isMembershipProcessing) return;
+      this.confirmMembershipCreation();
+    });
 
-    // Cancelar creación de membresía
-    if (this.cancelMembershipBtn) {
-      this.cancelMembershipBtn.addEventListener("click", () => {
-        this.membershipModal.classList.add("hidden");
-      });
-    }
+    this.cancelMembershipBtn?.addEventListener("click", () => {
+      this.membershipModal.classList.add("hidden");
+    });
 
-    // Manejar cambio en el tipo de membresía
-    if (this.tipoMembresiaSelect) {
-      this.tipoMembresiaSelect.addEventListener("change", (e) => {
-        this.handleTipoMembresiaChange(e);
-      });
-    }
-
-    // Calcular fecha de fin
-    if (this.fechaInicioInput) {
-      this.fechaInicioInput.addEventListener("change", () => {
-        this.calcularFechaFin();
-      });
-    }
-
-    // Botón para agregar integrantes
-    if (this.addIntegranteBtn) {
-      this.addIntegranteBtn.addEventListener("click", () => {
-        this.agregarIntegrante();
-      });
-    }
-
-    // Aplicar descuento (solo para admin)
-    if (this.aplicarDescuentoBtn) {
-      this.aplicarDescuentoBtn.addEventListener("click", () => {
-        this.aplicarDescuento();
-      });
-    }
+    this.membershipTypeSelect?.addEventListener("change", this.handleMembershipTypeChange.bind(this));
+    this.startDateInput?.addEventListener("change", this.calculateEndDate.bind(this));
+    this.addFamilyMemberBtn?.addEventListener("click", this.addFamilyMember.bind(this));
+    this.applyDiscountBtn?.addEventListener("click", this.applyDiscount.bind(this));
   },
 
   setMinDate: function () {
-    // Establecer fecha mínima como hoy
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-
-    if (this.fechaInicioInput) {
-      this.fechaInicioInput.min = `${yyyy}-${mm}-${dd}`;
-    }
+    if (!this.startDateInput) return;
+    this.startDateInput.min = new Date().toISOString().split("T")[0];
   },
 
   triggerInitialEvents: function () {
-    // Disparar evento inicial
-    if (this.tipoMembresiaSelect) {
-      this.tipoMembresiaSelect.dispatchEvent(new Event("change"));
-    }
+    this.membershipTypeSelect?.dispatchEvent(new Event("change"));
   },
 
-  mostrarModalCliente: function () {
-    const formData = new FormData(this.formCliente);
-    const nombre = formData.get("nombre_completo");
-    const telefono = formData.get("telefono") || "No proporcionado";
-    const correo = formData.get("correo");
-
-    this.clienteModalContent.innerHTML = `
-            <p><strong>Nombre:</strong> ${nombre}</p>
-            <p><strong>Teléfono:</strong> ${telefono}</p>
-            <p><strong>Correo:</strong> ${correo}</p>
-        `;
-
-    this.clienteModal.classList.remove("hidden");
+  showClientModal: function () {
+    const formData = new FormData(this.clientForm);
+    this.clientModalContent.innerHTML = `
+      <p><strong>Nombre:</strong> ${formData.get("fullName")}</p>
+      <p><strong>Teléfono:</strong> ${formData.get("phone") || "N/A"}</p>
+      <p><strong>Correo:</strong> ${formData.get("email")}</p>`;
+    this.clientModal.classList.remove("hidden");
   },
 
-  confirmarCliente: async function () {
-    if (this.procesandoCliente) {
-      console.log("⚠️ Ya se está procesando un cliente, ignorando doble clic");
-      return;
-    }
-
-    this.procesandoCliente = true;
-    this.clienteModal.classList.add("hidden");
-
-    if (this.confirmClienteBtn) {
-      this.confirmClienteBtn.disabled = true;
-    }
-
-    const submitBtn = this.formCliente.querySelector('button[type="submit"]');
+  confirmClientCreation: async function () {
+    this.isClientProcessing = true;
+    this.clientModal.classList.add("hidden");
+    const submitBtn = this.clientForm.querySelector('button[type="submit"]');
     const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = "Procesando...";
 
     try {
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = "Procesando...";
-
-      const formData = new FormData(this.formCliente);
-
-      const resp = await fetch(this.formCliente.action, {
+      const formData = new FormData(this.clientForm);
+      const response = await fetch("/memberships/createClient", { // Using original route for now
         method: "POST",
         body: new URLSearchParams(formData),
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+        headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
       });
+      const responseData = await response.json();
+      if (!response.ok) throw new Error(responseData.error || "Unknown error");
 
-      const responseData = await resp.json();
-
-      if (!resp.ok) {
-        const errorMsg =
-          responseData.error || responseData.message || "Error desconocido";
-        throw new Error(errorMsg);
-      }
-
-      if (responseData.id_cliente) {
-        this.idClienteInput.value = responseData.id_cliente;
-        this.clienteRegistrado = true;
-
-        this.submitMembershipBtn.disabled = false;
-        this.submitMembershipBtn.classList.remove(
-          "bg-gray-400",
-          "hover:bg-gray-400",
-          "focus:ring-gray-400"
-        );
-        this.submitMembershipBtn.classList.add(
-          "bg-green-600",
-          "hover:bg-green-700",
-          "focus:ring-green-500"
-        );
-        this.submitMembershipBtn.textContent = "Crear Membresía";
-
-        this.showMessage(
-          this.clienteMessage,
-          "Cliente registrado con éxito. Ahora puede crear la membresía.",
-          "success"
-        );
-
-        if (this.formMembership) {
-          this.formMembership.scrollIntoView({ behavior: "smooth" });
-        }
-      } else {
-        throw new Error("No se recibió un ID de cliente válido");
-      }
+      this.clientIdInput.value = responseData.clientId;
+      this.isClientRegistered = true;
+      this.submitMembershipBtn.disabled = false;
+      this.submitMembershipBtn.classList.replace("bg-gray-400", "bg-green-600");
+      this.submitMembershipBtn.textContent = "Crear Membresía";
+      this.showMessage(this.clientMessage, "Cliente registrado con éxito.", "success");
+      this.membershipForm.scrollIntoView({ behavior: "smooth" });
     } catch (err) {
-      console.error("Error al registrar cliente:", err);
-      this.showMessage(this.clienteMessage, `Error: ${err.message}`, "error");
+      this.showMessage(this.clientMessage, `Error: ${err.message}`, "error");
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalBtnText;
-      this.procesandoCliente = false;
-
-      if (this.confirmClienteBtn) {
-        this.confirmClienteBtn.disabled = false;
-      }
+      this.isClientProcessing = false;
     }
   },
 
-  mostrarModalMembresia: function () {
-    const formData = new FormData(this.formMembership);
-    const tipoMembresiaText =
-      this.tipoMembresiaSelect.options[this.tipoMembresiaSelect.selectedIndex]
-        .text;
-    const fechaInicio = formData.get("fecha_inicio");
-    const fechaFin = this.fechaFinInput.value;
-    const metodoPagoText =
-      document.getElementById("metodo_pago").options[
-        document.getElementById("metodo_pago").selectedIndex
-      ].text;
-    const precioFinal = this.precioFinalInput.value;
+  showMembershipModal: function () {
+    const formData = new FormData(this.membershipForm);
+    const typeSelect = this.membershipTypeSelect;
+    const paymentSelect = document.getElementById("paymentMethodId");
 
-    let integrantesHTML = "";
-    const integrantes = document.querySelectorAll(
-      'input[name="integrantes[]"]'
-    );
-
-    if (integrantes.length > 0) {
-      integrantesHTML =
-        '<p><strong>Integrantes:</strong></p><ul class="list-disc pl-5 mt-1">';
-      integrantes.forEach((integrante) => {
-        integrantesHTML += `<li>${integrante.value}</li>`;
-      });
-      integrantesHTML += "</ul>";
+    let membersHtml = "";
+    const members = document.querySelectorAll('input[name="familyMembers[]"]');
+    if (members.length > 0) {
+      membersHtml = '<p><strong>Integrantes:</strong></p><ul class="list-disc pl-5 mt-1">';
+      members.forEach(member => { membersHtml += `<li>${member.value}</li>`; });
+      membersHtml += "</ul>";
     }
 
     this.membershipModalContent.innerHTML = `
-            <p><strong>Tipo de membresía:</strong> ${tipoMembresiaText}</p>
-            <p><strong>Fecha de inicio:</strong> ${fechaInicio}</p>
-            <p><strong>Fecha de fin:</strong> ${fechaFin}</p>
-            <p><strong>Método de pago:</strong> ${metodoPagoText}</p>
-            <p><strong>Precio final:</strong> ${precioFinal}</p>
-            ${integrantesHTML}
-            ${
-              this.descuentoAplicado > 0
-                ? `<p><strong>Descuento aplicado:</strong> ${this.descuentoAplicado}%</p>`
-                : ""
-            }
-        `;
-
+      <p><strong>Tipo:</strong> ${typeSelect.options[typeSelect.selectedIndex].text}</p>
+      <p><strong>Inicio:</strong> ${formData.get("startDate")}</p>
+      <p><strong>Fin:</strong> ${this.endDateInput.value}</p>
+      <p><strong>Pago:</strong> ${paymentSelect.options[paymentSelect.selectedIndex].text}</p>
+      <p><strong>Precio Final:</strong> ${this.finalPriceDisplay.value}</p>
+      ${membersHtml}`;
     this.membershipModal.classList.remove("hidden");
   },
 
-  confirmarMembresia: async function () {
-    if (this.procesandoMembresia) {
-      console.log(
-        "⚠️ Ya se está procesando una membresía, ignorando doble clic"
-      );
-      return;
-    }
-
-    this.procesandoMembresia = true;
+  confirmMembershipCreation: async function () {
+    this.isMembershipProcessing = true;
     this.membershipModal.classList.add("hidden");
-
-    if (this.confirmMembershipBtn) {
-      this.confirmMembershipBtn.disabled = true;
-    }
-
-    const submitBtn = this.formMembership.querySelector(
-      'button[type="submit"]'
-    );
+    const submitBtn = this.submitMembershipBtn;
     const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = "Procesando...";
 
     try {
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = "Procesando...";
-
-      const idClienteValue = this.idClienteInput.value;
-      if (!idClienteValue || isNaN(idClienteValue)) {
-        this.showMessage(
-          this.membershipMessage,
-          "Error: ID de cliente inválido. Por favor, registre el cliente nuevamente.",
-          "error"
-        );
-        this.procesandoMembresia = false;
-        if (this.confirmMembershipBtn) {
-          this.confirmMembershipBtn.disabled = false;
-        }
-        return;
-      }
-
-      const fechaInicio = new Date(this.fechaInicioInput.value);
-      if (fechaInicio < new Date().setHours(0, 0, 0, 0)) {
-        this.showMessage(
-          this.membershipMessage,
-          "Error: La fecha de inicio no puede ser anterior a hoy",
-          "error"
-        );
-        this.procesandoMembresia = false;
-        if (this.confirmMembershipBtn) {
-          this.confirmMembershipBtn.disabled = false;
-        }
-        return;
-      }
-
-      if (this.maxIntegrantes > 1) {
-        const integrantes = document.querySelectorAll(
-          'input[name="integrantes[]"]'
-        );
-        if (integrantes.length === 0) {
-          this.showMessage(
-            this.membershipMessage,
-            "Error: Debe agregar al menos un integrante familiar",
-            "error"
-          );
-          this.procesandoMembresia = false;
-          if (this.confirmMembershipBtn) {
-            this.confirmMembershipBtn.disabled = false;
-          }
-          return;
-        }
-
-        for (let integrante of integrantes) {
-          if (!integrante.value.trim()) {
-            this.showMessage(
-              this.membershipMessage,
-              "Error: Todos los integrantes deben tener un nombre",
-              "error"
-            );
-            this.procesandoMembresia = false;
-            if (this.confirmMembershipBtn) {
-              this.confirmMembershipBtn.disabled = false;
-            }
-            return;
-          }
-        }
-      }
-
-      const formData = new FormData(this.formMembership);
-      console.log("📤 Enviando datos de membresía...");
-
-      const resp = await fetch(this.formMembership.action, {
+      const formData = new FormData(this.membershipForm);
+      const response = await fetch("/memberships/createMembership", { // Using original route for now
         method: "POST",
         body: new URLSearchParams(formData),
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+        headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
       });
-
-      const responseData = await resp.json();
-      console.log("📥 Respuesta recibida:", responseData);
-
-      if (!resp.ok) {
-        throw new Error(responseData.error || "Error HTTP " + resp.status);
-      }
+      const responseData = await response.json();
+      if (!response.ok) throw new Error(responseData.error || "Unknown error");
 
       if (responseData.success) {
-        // Mostrar el modal de éxito con la información de la membresía
-        this.mostrarModalExito(responseData.data);
-
-        // Deshabilitar el formulario temporalmente para prevenir reenvíos
-        this.formMembership.classList.add("opacity-50");
-        this.formMembership
-          .querySelectorAll("input, select, button")
-          .forEach((el) => {
-            el.disabled = true;
-          });
+        this.showSuccessModal(responseData.data);
+        this.membershipForm.classList.add("opacity-50");
+        this.membershipForm.querySelectorAll("input, select, button").forEach(el => el.disabled = true);
       } else {
-        throw new Error(responseData.message || "Error desconocido");
+        throw new Error(responseData.message || "Unknown error");
       }
     } catch (err) {
-      console.error("Error completo:", err);
-      this.showMessage(
-        this.membershipMessage,
-        "Error al crear membresía: " + err.message,
-        "error"
-      );
+      this.showMessage(this.membershipMessage, `Error: ${err.message}`, "error");
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalBtnText;
-      this.procesandoMembresia = false;
-
-      if (this.confirmMembershipBtn) {
-        this.confirmMembershipBtn.disabled = false;
-      }
+      this.isMembershipProcessing = false;
     }
   },
 
-  // Método para mostrar el modal de éxito con QR
-  mostrarModalExito: function (data) {
-    // Convertir número a letras
-    const convertirNumeroALetras = (numero) => {
-      const unidades = [
-        "",
-        "uno",
-        "dos",
-        "tres",
-        "cuatro",
-        "cinco",
-        "seis",
-        "siete",
-        "ocho",
-        "nueve",
-      ];
-      const decenas = [
-        "",
-        "",
-        "veinte",
-        "treinta",
-        "cuarenta",
-        "cincuenta",
-        "sesenta",
-        "setenta",
-        "ochenta",
-        "noventa",
-      ];
-
-      if (numero === 0) return "cero";
-      if (numero < 10) return unidades[numero];
-      if (numero < 100) {
-        const dec = Math.floor(numero / 10);
-        const uni = numero % 10;
-        return decenas[dec] + (uni > 0 ? " y " + unidades[uni] : "");
-      }
-      return numero.toString();
-    };
-
-    const precioEnLetras =
-      convertirNumeroALetras(Math.floor(data.precio_final)) + " pesos";
-
-    let integrantesHTML = "";
-    if (data.integrantes && data.integrantes.length > 0) {
-      integrantesHTML = `
-        <div class="mt-4">
-          <h4 class="font-medium text-green-700 mb-2">Integrantes:</h4>
-          <ul class="list-disc pl-5">
-            ${data.integrantes
-              .map((i) => `<li>${i.nombre_completo}</li>`)
-              .join("")}
-          </ul>
-        </div>
-      `;
+  showSuccessModal: function (data) {
+    let membersHtml = "";
+    if (data.familyMembers && data.familyMembers.length > 0) {
+      membersHtml = `<div class="mt-4"><h4 class="font-medium text-green-700 mb-2">Integrantes:</h4>
+          <ul class="list-disc pl-5">${data.familyMembers.map(i => `<li>${i.fullName}</li>`).join("")}</ul></div>`;
     }
-
-    // Crear el modal de éxito
-    const modalHTML = `
-      <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    const modalHTML = `<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div class="text-center mb-6">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-              <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            </div>
-            <h3 class="text-lg font-bold text-green-800">¡Membresía Creada Exitosamente!</h3>
+          <h3 class="text-lg font-bold text-green-800 mb-4 text-center">¡Membresía Creada Exitosamente!</h3>
+          <p><strong>Titular:</strong> ${data.holder}</p>
+          <p><strong>Tipo:</strong> ${data.membershipType}</p>
+          <p><strong>Total:</strong> $${data.finalPrice.toFixed(2)}</p>
+          ${membersHtml}
+          <div class="text-center p-4"><img src="${data.qrPath}?t=${Date.now()}" alt="QR" class="w-48 h-48 mx-auto border rounded">
+            <a href="/memberships/download-qr/${data.activeMembershipId}" class="mt-4 inline-block px-4 py-2 bg-green-600 text-white rounded">Descargar QR</a>
           </div>
-          
-          <div class="border border-green-200 rounded-lg p-4 mb-4">
-            <h4 class="font-medium text-green-700 mb-3">Información de la Membresía:</h4>
-            <div class="space-y-2 text-sm">
-              <p><strong>Titular:</strong> ${data.titular}</p>
-              <p><strong>Tipo de membresía:</strong> ${data.tipo_membresia}</p>
-              <p><strong>Fecha de inicio:</strong> ${data.fecha_inicio}</p>
-              <p><strong>Fecha de expiración:</strong> ${data.fecha_fin}</p>
-              <p><strong>Método de pago:</strong> ${data.metodo_pago}</p>
-              <p><strong>Total pagado:</strong> $${data.precio_final.toFixed(
-                2
-              )}</p>
-              <p><strong>Total en letras:</strong> ${precioEnLetras}</p>
-            </div>
-            ${integrantesHTML}
-          </div>
-
-          <div class="border border-green-200 rounded-lg p-4 mb-4">
-            <h4 class="font-medium text-green-700 mb-3 text-center">Código QR de Acceso:</h4>
-            <div class="flex justify-center mb-3">
-              <img id="qrImage" src="${data.qr_path}?t=${new Date().getTime()}" 
-                   alt="QR de membresía ${data.titular}" 
-                   class="w-48 h-48 border border-gray-300 rounded object-contain bg-white"
-                   onerror="this.style.display='none'; document.getElementById('qrError').style.display='block';">
-            </div>
-            <div id="qrError" class="text-center text-yellow-600 mb-3" style="display: none;">
-              <i class="fas fa-exclamation-triangle"></i> El QR se está generando...
-            </div>
-            <div class="text-center">
-              <button onclick="MembershipUI.descargarQR(${data.id_activa})" 
-                      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
-                </svg>
-                Descargar QR
-              </button>
-            </div>
-          </div>
-
-          <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-            <p class="text-sm text-green-700 text-center">
-              <strong>¡Importante!</strong> Se ha enviado un comprobante a su correo electrónico.
-              Presente este QR en recepción para acceder a las instalaciones.
-            </p>
-          </div>
-
-          <div class="flex justify-center space-x-3">
-            <button onclick="MembershipUI.cerrarModalExito()" 
-                    class="px-6 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
-              Cerrar
-            </button>
-            <button onclick="window.location.href='/memberships/listMembership'" 
-                    class="px-6 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">
-              Ver Lista de Membresías
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Agregar el modal al body
+          <div class="flex justify-center"><button onclick="window.location.reload()" class="px-6 py-2 border rounded">Cerrar</button></div>
+        </div></div>`;
     document.body.insertAdjacentHTML("beforeend", modalHTML);
-
-    // Intentar recargar la imagen después de un breve retraso
-    setTimeout(() => {
-      const qrImage = document.getElementById("qrImage");
-      if (qrImage) {
-        qrImage.src = qrImage.src.split("?")[0] + "?t=" + new Date().getTime();
-      }
-    }, 1000);
   },
 
-  // Método para cerrar el modal de éxito
-  cerrarModalExito: function () {
-    const modal = document.getElementById("successModal");
-    if (modal) {
-      modal.remove();
-    }
-    // Opcionalmente limpiar el formulario
-    this.limpiarFormularios();
-  },
-
-  // Método para descargar el QR
-  descargarQR: function (id_activa) {
-    const link = document.createElement("a");
-    link.href = `/memberships/download-qr/${id_activa}`;
-    link.download = `membresia_${id_activa}_qr.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  },
-
-  // Método para limpiar formularios
-  limpiarFormularios: function () {
-    if (this.formCliente) {
-      this.formCliente.reset();
-    }
-    if (this.formMembership) {
-      this.formMembership.reset();
-      this.integrantesContainer.innerHTML = "";
-      this.integrantesSection.classList.add("hidden");
-    }
-
-    this.clienteRegistrado = false;
-    this.submitMembershipBtn.disabled = true;
-    this.submitMembershipBtn.classList.remove(
-      "bg-green-600",
-      "hover:bg-green-700",
-      "focus:ring-green-500"
-    );
-    this.submitMembershipBtn.classList.add(
-      "bg-gray-400",
-      "hover:bg-gray-400",
-      "focus:ring-gray-400"
-    );
-    this.submitMembershipBtn.textContent =
-      "Crear Membresía (complete primero el cliente)";
-  },
-
-  handleTipoMembresiaChange: function (e) {
-    const selectedOption = e.target.options[e.target.selectedIndex];
-    this.maxIntegrantes = parseInt(selectedOption.dataset.max, 10);
-    this.precioBase = parseFloat(selectedOption.dataset.precio);
-
-    this.aplicarPrecioConDescuento();
-
-    if (this.fechaInicioInput.value) {
-      this.calcularFechaFin();
-    }
-
-    if (this.maxIntegrantes > 1) {
-      this.integrantesSection.classList.remove("hidden");
-      if (this.integrantesContainer.children.length === 0) {
-        this.addIntegranteBtn.click();
-      }
-    } else {
-      this.integrantesSection.classList.add("hidden");
-      this.integrantesContainer.innerHTML = "";
+  handleMembershipTypeChange: function (e) {
+    const option = e.target.options[e.target.selectedIndex];
+    this.maxMembers = parseInt(option.dataset.max, 10);
+    this.basePrice = parseFloat(option.dataset.precio);
+    this.updateFinalPrice();
+    this.calculateEndDate();
+    this.familyMembersSection.classList.toggle("hidden", this.maxMembers <= 1);
+    if (this.maxMembers > 1 && this.familyMembersContainer.children.length === 0) {
+      this.addFamilyMember();
+    } else if (this.maxMembers <= 1) {
+      this.familyMembersContainer.innerHTML = "";
     }
   },
 
-  calcularFechaFin: function () {
-    if (!this.fechaInicioInput.value) return;
-
-    const startDate = new Date(this.fechaInicioInput.value);
+  calculateEndDate: function () {
+    if (!this.startDateInput.value) return;
+    const startDate = new Date(this.startDateInput.value);
     const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + this.duracionDias);
-
-    const yyyy = endDate.getFullYear();
-    const mm = String(endDate.getMonth() + 1).padStart(2, "0");
-    const dd = String(endDate.getDate()).padStart(2, "0");
-
-    this.fechaFinInput.value = `${yyyy}-${mm}-${dd}`;
+    endDate.setDate(startDate.getDate() + this.membershipDurationDays);
+    this.endDateInput.value = endDate.toISOString().split("T")[0];
   },
 
-  agregarIntegrante: function () {
-    const currentIntegrantes =
-      this.integrantesContainer.querySelectorAll(".integrante").length;
-
-    if (currentIntegrantes < this.maxIntegrantes - 1) {
-      const integranteDiv = document.createElement("div");
-      integranteDiv.classList.add(
-        "integrante",
-        "flex",
-        "items-center",
-        "space-x-2",
-        "mb-2"
-      );
-      integranteDiv.innerHTML = `
-                <input type="text" name="integrantes[]" placeholder="Nombre completo del integrante" required 
-                       class="flex-1 px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
-                <button type="button" class="removeBtn px-3 py-2 border border-transparent rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    ❌ Eliminar
-                </button>
-            `;
-      this.integrantesContainer.appendChild(integranteDiv);
-
-      integranteDiv
-        .querySelector(".removeBtn")
-        .addEventListener("click", () => {
-          integranteDiv.remove();
-          const remaining =
-            this.maxIntegrantes -
-            1 -
-            this.integrantesContainer.querySelectorAll(".integrante").length;
-          if (remaining > 0) {
-            this.showMessage(
-              this.membershipMessage,
-              `Puede agregar hasta ${remaining} integrantes más`,
-              "success"
-            );
-            setTimeout(() => {
-              this.membershipMessage.classList.add("hidden");
-            }, 3000);
-          }
-        });
-    } else {
-      this.showMessage(
-        this.membershipMessage,
-        `Máximo ${this.maxIntegrantes - 1} integrantes adicionales permitidos`,
-        "error"
-      );
-      setTimeout(() => {
-        this.membershipMessage.classList.add("hidden");
-      }, 3000);
-    }
+  addFamilyMember: function () {
+    if (this.familyMembersContainer.querySelectorAll(".integrante").length >= this.maxMembers - 1) return;
+    const memberDiv = document.createElement("div");
+    memberDiv.className = "integrante flex items-center space-x-2 mb-2";
+    memberDiv.innerHTML = `<input type="text" name="familyMembers[]" placeholder="Nombre completo" required class="flex-1 px-3 py-2 border rounded">
+      <button type="button" class="removeBtn px-3 py-2 border rounded text-red-700 bg-red-100 hover:bg-red-200">Eliminar</button>`;
+    this.familyMembersContainer.appendChild(memberDiv);
+    memberDiv.querySelector(".removeBtn").addEventListener("click", () => memberDiv.remove());
   },
 
-  aplicarDescuento: function () {
-    const descuento = parseInt(this.descuentoInput.value) || 0;
-    if (descuento < 0 || descuento > 100) {
-      this.showMessage(
-        this.membershipMessage,
-        "El descuento debe estar entre 0 y 100%",
-        "error"
-      );
-      return;
-    }
-
-    this.descuentoAplicado = descuento;
-    this.aplicarPrecioConDescuento();
-    this.showMessage(
-      this.membershipMessage,
-      `Descuento del ${descuento}% aplicado correctamente`,
-      "success"
-    );
+  applyDiscount: function () {
+    this.updateFinalPrice();
   },
 
-  aplicarPrecioConDescuento: function () {
-    if (this.precioBase) {
-      const precioConDescuento =
-        this.precioBase - this.precioBase * (this.descuentoAplicado / 100);
-      this.precioFinalInput.value = `${precioConDescuento.toFixed(2)}`;
-      this.precioFinalHidden.value = precioConDescuento.toFixed(2);
+  updateFinalPrice: function () {
+    const discount = parseInt(this.discountInput?.value || 0, 10);
+    if (this.basePrice) {
+      const finalPrice = this.basePrice - this.basePrice * (discount / 100);
+      this.finalPriceDisplay.value = `$${finalPrice.toFixed(2)}`;
+      this.finalPriceInput.value = finalPrice.toFixed(2);
     }
   },
 
   showMessage: function (element, text, type) {
     element.textContent = text;
-    element.classList.remove("hidden", "text-green-600", "text-red-600");
-
-    if (type === "success") {
-      element.classList.add("text-green-600");
-    } else {
-      element.classList.add("text-red-600");
-    }
-
-    setTimeout(() => {
-      element.classList.add("hidden");
-    }, 5000);
+    element.className = `text-sm font-medium ${type === 'success' ? 'text-green-600' : 'text-red-600'}`;
+    setTimeout(() => { element.className += ' hidden'; }, 5000);
   },
 };
 
-// Inicializar cuando el DOM esté listo
-document.addEventListener("DOMContentLoaded", function () {
-  MembershipUI.init();
-});
+document.addEventListener("DOMContentLoaded", () => CreateMembershipUI.init());

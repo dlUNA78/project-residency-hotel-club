@@ -1,19 +1,21 @@
 // services/clientService.js
-import { MembershipModel } from "../models/modelMembership.js";
+import { MembershipModel } from "../models/membershipModel.js";
 
 export const ClientService = {
   async createClient(clientData) {
-    const { nombre_completo, correo, telefono } = clientData;
+    const { fullName, email, phone } = clientData;
     
+    // The model now expects camelCase properties
     const result = await MembershipModel.createClient({
-      nombre_completo,
-      correo,
-      telefono,
+      fullName,
+      email,
+      phone,
     });
     
-    const id_cliente = result.id_cliente || result.insertId;
-    if (!id_cliente) throw new Error("No se pudo obtener el ID del cliente");
+    // The model now returns an object with `clientId`
+    const { clientId } = result;
+    if (!clientId) throw new Error("Could not get client ID from model");
     
-    return { id_cliente };
+    return { clientId };
   }
 };

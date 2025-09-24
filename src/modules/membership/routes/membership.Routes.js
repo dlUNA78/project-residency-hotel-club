@@ -47,17 +47,14 @@ routerMembership.get('/api/qr/:id_activa', async (req, res) => {
 });
 
 // Ruta para descargar el QR
-routerMembership.get('/download-qr/:id_activa', MembershipController.downloadQR);
+routerMembership.get('/download-qr/:activeMembershipId', bind(MembershipController, 'downloadQr'));
 
 // Vistas
 routerMembership.get("/", renderMembershipHome);
-routerMembership.get("/createMembership", renderMembershipCreate);
+// The renderMembershipCreate from membershipController is basic, we use the one from createMemberController
+routerMembership.get("/createMembership", bind(MembershipController, 'renderCreatePage'));
 routerMembership.get("/editMembership/:id", renderEditMembership);
 routerMembership.get("/renew/:id", renderRenewMembership);
-routerMembership.get(
-  "/createMembership/tipos",
-  bind(MembershipController, "renderTiposMembresia")
-);
 routerMembership.get("/reports", bind(reportsController, "renderReports"));
 
 // Acciones CRUD
@@ -79,12 +76,6 @@ routerMembership.post("/renew/:id", editMemberController.renewMembership);
 routerMembership.delete("/delete/:id", deleteMemberController.deleteMembership);
 
 
-// Ruta con verificación de método existente
-routerMembership.get("/tipos_membresia/:id", (req, res) => {
-  if (MembershipController.getTipoMembresiaById) {
-    return MembershipController.getTipoMembresiaById(req, res);
-  }
-  res.status(501).json({ error: "Not implemented" });
-});
+routerMembership.get("/types/:id", bind(MembershipController, "getMembershipTypeById"));
 
 export { routerMembership as membershipRoutes };

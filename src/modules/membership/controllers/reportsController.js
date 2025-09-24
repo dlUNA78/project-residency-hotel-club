@@ -1,4 +1,4 @@
-import { MembershipModel } from "../models/modelMembership.js";
+import { MembershipModel } from "../models/membershipModel.js";
 import puppeteer from "puppeteer";
 import hbs from "handlebars";
 import fs from "fs/promises";

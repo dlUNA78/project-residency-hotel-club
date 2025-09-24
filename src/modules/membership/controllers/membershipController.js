@@ -1,4 +1,4 @@
-import { MembershipModel } from "../models/modelMembership.js";
+import { MembershipModel } from "../models/membershipModel.js";
 
 // Controlador para renderizar la vista principal
 export const renderMembershipHome = (req, res) => {
@@ -33,15 +33,15 @@ export const renderMembershipCreate = async (req, res) => {
     const isAdmin = userRole === "Administrador";
 
     // Obtener los datos necesarios
-    const tiposMembresia = await MembershipModel.getTiposMembresia();
-    const tiposPago = await MembershipModel.getMetodosPago();
+    const membershipTypes = await MembershipModel.getMembershipTypes();
+    const paymentMethods = await MembershipModel.getPaymentMethods();
 
     res.render("membershipCreate", {
       title: "Crear Membresía",
       isAdmin,
       userRole,
-      tiposMembresia,
-      tiposPago,
+      membershipTypes,
+      paymentMethods,
     });
   } catch (error) {
     console.error("Error al cargar la página de creación de membresía:", error);
@@ -62,8 +62,8 @@ export const renderRenewMembership = async (req, res) => {
     }
 
     // Obtener los tipos de membresía para el select
-    const tiposMembresia = await MembershipModel.getTiposMembresia();
-    const tiposPago = await MembershipModel.getMetodosPago();
+    const membershipTypes = await MembershipModel.getMembershipTypes();
+    const paymentMethods = await MembershipModel.getPaymentMethods();
 
 
     res.render("renewalMembership", {
@@ -71,8 +71,8 @@ export const renderRenewMembership = async (req, res) => {
       isAdmin,
       userRole,
       membership: membresia,
-      tiposMembresia,
-      tiposPago,
+      membershipTypes,
+      paymentMethods,
       helpers: {
         formatDate: (date) => {
           if (!date) return '';
@@ -103,14 +103,14 @@ export const renderEditMembership = async (req, res) => {
     }
 
     // Obtener los tipos de membresía para el select
-    const tiposMembresia = await MembershipModel.getTiposMembresia();
+    const membershipTypes = await MembershipModel.getMembershipTypes();
 
     res.render("editMembership", {
       title: "Editar Membresía",
       isAdmin,
       userRole,
       membership: membresia,
-      tiposMembresia,
+      membershipTypes,
       helpers: {
         formatDate: (date) => {
           if (!date) return '';
