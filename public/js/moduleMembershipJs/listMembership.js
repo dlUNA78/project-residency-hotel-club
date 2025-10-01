@@ -2,7 +2,7 @@
 const MembershipUI = {
   init: function () {
     this.bindEvents();
-    this.applyInitialFormatting();
+    this.fetchAndRenderMemberships(); // Carga inicial de datos
   },
 
   bindEvents: function () {
@@ -36,19 +36,19 @@ const MembershipUI = {
     // Búsqueda y filtros
     if (this.searchInput) {
       this.searchInput.addEventListener("input", () => {
-        this.filterMemberships();
+        this.fetchAndRenderMemberships();
       });
     }
 
     if (this.statusFilter) {
       this.statusFilter.addEventListener("change", () => {
-        this.filterMemberships();
+        this.fetchAndRenderMemberships();
       });
     }
 
     if (this.sortBy) {
       this.sortBy.addEventListener("change", () => {
-        this.filterMemberships();
+        this.fetchAndRenderMemberships();
       });
     }
 
@@ -75,25 +75,6 @@ const MembershipUI = {
           preventDefault: () => e.preventDefault(),
           stopPropagation: () => e.stopPropagation()
         });
-      }
-    });
-  },
-
-  applyInitialFormatting: function () {
-    // Iniciales de los nombres con avatar de gradiente
-    const initialElements = document.querySelectorAll("[data-initial]");
-    initialElements.forEach((element) => {
-      const name = element.getAttribute("data-initial");
-      element.textContent = this.getFirstLetter(name);
-    });
-
-    // Formatear todas las fechas en la tabla
-    const dateFields = document.querySelectorAll(".date-field");
-    dateFields.forEach((field) => {
-      const dateText = field.textContent.trim();
-      if (dateText && !isNaN(new Date(dateText).getTime())) {
-        field.textContent = this.formatDate(dateText);
-        field.setAttribute("data-original", dateText);
       }
     });
   },
@@ -370,108 +351,80 @@ const MembershipUI = {
       });
   },
 
-  filterMemberships: function () {
-    const searchTerm = this.searchInput
-      ? this.searchInput.value.toLowerCase()
-      : "";
+  fetchAndRenderMemberships: async function () {
+    const searchTerm = this.searchInput ? this.searchInput.value : "";
     const statusValue = this.statusFilter ? this.statusFilter.value : "all";
     const sortValue = this.sortBy ? this.sortBy.value : "expiry";
 
-    this.membershipRows.forEach((row) => {
-      const text = row.textContent.toLowerCase();
-      const statusBadge = row.querySelector(".status-badge");
-      let statusMatch = true;
+    const tableBody = document.getElementById("membershipsTableBody");
+    if (!tableBody) return;
 
-      // Filtrar por estado
-      if (statusValue !== "all") {
-        if (statusValue === "active") {
-          statusMatch =
-            statusBadge &&
-            statusBadge.textContent.includes("Activa") &&
-            !statusBadge.textContent.includes("Vencida");
-        } else if (statusValue === "expiring") {
-          statusMatch =
-            statusBadge && statusBadge.textContent.includes("vencer");
-        } else if (statusValue === "expired") {
-          statusMatch =
-            statusBadge && statusBadge.textContent.includes("Vencida");
+    tableBody.innerHTML = '<tr><td colspan="8" class="text-center p-8"><i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i></td></tr>';
+
+    const params = new URLSearchParams({
+      search: searchTerm,
+      status: statusValue,
+      sortBy: sortValue.split('_')[0],
+      order: sortValue.split('_')[1] || 'asc'
+    });
+
+    try {
+      const response = await fetch(`/api/memberships?${params.toString()}`);
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Error al cargar los datos");
+      }
+
+      this.renderTable(result.data);
+    } catch (error) {
+      console.error("Error fetching memberships:", error);
+      tableBody.innerHTML = `<tr><td colspan="8" class="text-center p-8 text-red-500">Error al cargar membresías: ${error.message}</td></tr>`;
+    }
+  },
+
+  renderTable: function (memberships) {
+    const tableBody = document.getElementById("membershipsTableBody");
+    tableBody.innerHTML = ""; // Limpiar tabla
+
+    if (memberships.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="8" class="text-center p-8">No se encontraron membresías.</td></tr>';
+      return;
+    }
+
+    memberships.forEach(m => {
+        let statusClass = "bg-green-100 text-green-800";
+        let statusText = `Activa (${m.daysUntilExpiry} días)`;
+        if (m.statusType === "Por_Vencer") {
+            statusClass = "bg-yellow-100 text-yellow-800";
+            statusText = `Por Vencer (${m.daysUntilExpiry} días)`;
+        } else if (m.statusType === "Vencida") {
+            statusClass = "bg-red-100 text-red-800";
+            statusText = "Vencida";
         }
-      }
 
-      // Filtrar por término de búsqueda
-      const searchMatch = searchTerm === "" || text.includes(searchTerm);
-
-      // Mostrar u ocultar fila según los filtros
-      if (searchMatch && statusMatch) {
-        row.style.display = "";
-        row.classList.add("bg-green-100");
-        setTimeout(() => row.classList.remove("bg-green-100"), 1000);
-      } else {
-        row.style.display = "none";
-      }
+        const row = `
+            <tr class="membership-row hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${m.fullName}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${m.type}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 date-field">${this.formatDate(m.startDate)}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 date-field">${this.formatDate(m.endDate)}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="status-badge px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                        ${statusText}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${m.amount}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button class="view-details-btn text-indigo-600 hover:text-indigo-900" data-id="${m.id}">Ver</button>
+                    <a href="/memberships/editMembership/${m.id}" class="text-indigo-600 hover:text-indigo-900 ml-4">Editar</a>
+                    <button class="delete-btn text-red-600 hover:text-red-900 ml-4" data-id="${m.id}" data-name="${m.fullName}" data-type="${m.type}">Eliminar</button>
+                    ${m.isFamily ? `<button class="view-members-btn text-purple-600 hover:text-purple-900 ml-4" data-id-activa="${m.id_activa}">Integrantes</button>` : ''}
+                </td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', row);
     });
-
-    // Ordenar resultados
-    this.sortTable(sortValue);
-  },
-
-  sortTable: function (criteria) {
-    const tbody = document.getElementById("membershipsTableBody");
-    if (!tbody) return;
-
-    const rows = Array.from(tbody.querySelectorAll(".membership-row"));
-
-    rows.sort((a, b) => {
-      if (criteria === "name") {
-        const nameElementA = a.querySelector(".text-sm.font-semibold");
-        const nameElementB = b.querySelector(".text-sm.font-semibold");
-        const nameA = nameElementA
-          ? nameElementA.textContent.toLowerCase()
-          : "";
-        const nameB = nameElementB
-          ? nameElementB.textContent.toLowerCase()
-          : "";
-        return nameA.localeCompare(nameB);
-      } else if (criteria === "recent") {
-        const dateFieldsA = a.querySelectorAll(".date-field");
-        const dateFieldsB = b.querySelectorAll(".date-field");
-        const dateA =
-          dateFieldsA.length > 0
-            ? new Date(dateFieldsA[0].getAttribute("data-original"))
-            : new Date(0);
-        const dateB =
-          dateFieldsB.length > 0
-            ? new Date(dateFieldsB[0].getAttribute("data-original"))
-            : new Date(0);
-        return dateB - dateA;
-      } else {
-        // expiry por defecto
-        const statusBadgeA = a.querySelector(".status-badge");
-        const statusBadgeB = b.querySelector(".status-badge");
-        const daysA = this.extractDays(
-          statusBadgeA ? statusBadgeA.textContent : ""
-        );
-        const daysB = this.extractDays(
-          statusBadgeB ? statusBadgeB.textContent : ""
-        );
-        return daysA - daysB;
-      }
-    });
-
-    // Limpiar y reordenar la tabla
-    rows.forEach((row) => tbody.appendChild(row));
-  },
-
-  extractDays: function (text) {
-    if (!text) return 999;
-
-    const match = text.match(/(\d+)\s*días/);
-    if (match) return parseInt(match[1]);
-
-    if (text.includes("Vencida")) return -1;
-    if (text.includes("Inactiva")) return -2;
-
-    return 999; // Para membresías activas sin contador específico
   },
 };
 
