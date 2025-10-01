@@ -2,55 +2,9 @@
 import { pool } from "../../../dataBase/conecctionDataBase.js";
 
 const modelList = {
-  async getMembresias({ search = "", status = "all", sortBy = "expiry", order = "asc" } = {}) {
+  // Obtener todas las membresías activas con información de clientes
+  async getMembresiasActivas() {
     try {
-      let whereClauses = [];
-      let params = [];
-      let orderByClause = "";
-
-      // Filtro de búsqueda
-      if (search) {
-        whereClauses.push("(c.nombre_completo LIKE ? OR c.telefono LIKE ? OR c.correo LIKE ?)");
-        const searchTerm = `%${search}%`;
-        params.push(searchTerm, searchTerm, searchTerm);
-      }
-
-      // Filtro de estado (Corregido para manejar correctamente todos los casos)
-      switch (status) {
-        case "active":
-          whereClauses.push("ma.estado = 'Activa' AND DATEDIFF(ma.fecha_fin, CURDATE()) > 7");
-          break;
-        case "expiring":
-          whereClauses.push("ma.estado = 'Activa' AND DATEDIFF(ma.fecha_fin, CURDATE()) BETWEEN 1 AND 7");
-          break;
-        case "expired":
-          // Para 'vencidas', no debemos filtrar por ma.estado = 'Activa' ya que pueden tener otro estado.
-          whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) <= 0");
-          break;
-        case "all":
-        default:
-          // Comportamiento por defecto: mostrar todas las que no estén canceladas, etc.
-          // Replicando el comportamiento original de getMembresiasActivas.
-          whereClauses.push("ma.estado = 'Activa'");
-          break;
-      }
-
-      // Cláusula de ordenación
-      switch (sortBy) {
-        case "name":
-          orderByClause = `ORDER BY c.nombre_completo ${order === 'desc' ? 'DESC' : 'ASC'}`;
-          break;
-        case "recent":
-           orderByClause = `ORDER BY ma.fecha_inicio ${order === 'desc' ? 'DESC' : 'ASC'}`;
-          break;
-        case "expiry":
-        default:
-          orderByClause = `ORDER BY ma.fecha_fin ${order === 'desc' ? 'DESC' : 'ASC'}`;
-          break;
-      }
-
-      const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-
       const query = `
         SELECT 
           ma.id_activa,
@@ -76,16 +30,18 @@ const modelList = {
         INNER JOIN clientes c ON ma.id_cliente = c.id_cliente
         INNER JOIN membresias m ON ma.id_membresia = m.id_membresia
         INNER JOIN tipos_membresia tm ON m.id_tipo_membresia = tm.id_tipo_membresia
-        ${whereSql}
-        ${orderByClause}
+        WHERE ma.estado = 'Activa'
+        ORDER BY ma.fecha_fin ASC
       `;
 
-      const [membresias] = await pool.query(query, params);
+      const [membresias] = await pool.query(query);
 
       // Para cada membresía, obtener los integrantes si es familiar
       for (let membresia of membresias) {
         if (membresia.max_integrantes > 1) {
-          membresia.integrantes = await this.getIntegrantesMembresia(membresia.id_activa);
+          membresia.integrantes = await this.getIntegrantesMembresia(
+            membresia.id_activa
+          );
         } else {
           membresia.integrantes = [];
         }
@@ -93,7 +49,7 @@ const modelList = {
 
       return membresias;
     } catch (error) {
-      console.error("Error al obtener membresías:", error);
+      console.error("Error al obtener membresías activas:", error);
       throw error;
     }
   },
@@ -114,6 +70,175 @@ const modelList = {
       return integrantes;
     } catch (error) {
       console.error("Error al obtener integrantes:", error);
+      throw error;
+    }
+  },
+
+  // Obtener membresías por tipo (Individual/Familiar)
+  async getMembresiasPorTipo(tipo) {
+    try {
+      const esFamiliar = tipo === "Familiar";
+
+      const query = `
+        SELECT
+          ma.id_activa,
+          ma.id_cliente,
+          ma.id_membresia,
+          ma.fecha_inicio,
+          ma.fecha_fin,
+          ma.precio_final,
+          ma.estado,
+          c.nombre_completo,
+          c.telefono,
+          c.correo,
+          tm.nombre as tipo_membresia,
+          tm.max_integrantes,
+          DATEDIFF(ma.fecha_fin, CURDATE()) as dias_restantes,
+          (SELECT COUNT(*) FROM integrantes_membresia im WHERE im.id_activa = ma.id_activa) as total_integrantes
+        FROM membresias_activas ma
+        INNER JOIN clientes c ON ma.id_cliente = c.id_cliente
+        INNER JOIN membresias m ON ma.id_membresia = m.id_membresia
+        INNER JOIN tipos_membresia tm ON m.id_tipo_membresia = tm.id_tipo_membresia
+        WHERE ma.estado = 'Activa'
+          AND tm.max_integrantes ${esFamiliar ? ">" : "="} 1
+        ORDER BY ma.fecha_fin ASC
+      `;
+
+      const [membresias] = await pool.query(query);
+
+      // Para membresías familiares, obtener integrantes
+      if (esFamiliar) {
+        for (let membresia of membresias) {
+          membresia.integrantes = await this.getIntegrantesMembresia(
+            membresia.id_activa
+          );
+        }
+      }
+
+      return membresias;
+    } catch (error) {
+      console.error("Error al obtener membresías por tipo:", error);
+      throw error;
+    }
+  },
+
+  // Obtener membresías por estado (Activa, Por vencer, Vencida)
+  async getMembresiasPorEstado(estado) {
+    try {
+      let condition = "";
+
+      switch (estado) {
+        case "Activa":
+          condition = "AND DATEDIFF(ma.fecha_fin, CURDATE()) > 7";
+          break;
+        case "Por vencer":
+          condition = "AND DATEDIFF(ma.fecha_fin, CURDATE()) BETWEEN 1 AND 7";
+          break;
+        case "Vencida":
+          condition = "AND DATEDIFF(ma.fecha_fin, CURDATE()) <= 0";
+          break;
+        default:
+          condition = "";
+      }
+
+      const query = `
+        SELECT
+          ma.id_activa,
+          ma.id_cliente,
+          ma.id_membresia,
+          ma.fecha_inicio,
+          ma.fecha_fin,
+          ma.precio_final,
+          ma.estado,
+          c.nombre_completo,
+          c.telefono,
+          c.correo,
+          tm.nombre as tipo_membresia,
+          tm.max_integrantes,
+          DATEDIFF(ma.fecha_fin, CURDATE()) as dias_restantes,
+          CASE
+            WHEN tm.max_integrantes > 1 THEN 'Familiar'
+            ELSE 'Individual'
+          END as tipo,
+          (SELECT COUNT(*) FROM integrantes_membresia im WHERE im.id_activa = ma.id_activa) as total_integrantes
+        FROM membresias_activas ma
+        INNER JOIN clientes c ON ma.id_cliente = c.id_cliente
+        INNER JOIN membresias m ON ma.id_membresia = m.id_membresia
+        INNER JOIN tipos_membresia tm ON m.id_tipo_membresia = tm.id_tipo_membresia
+        WHERE ma.estado = 'Activa'
+          ${condition}
+        ORDER BY ma.fecha_fin ASC
+      `;
+
+      const [membresias] = await pool.query(query);
+
+      // Para cada membresía familiar, obtener los integrantes
+      for (let membresia of membresias) {
+        if (membresia.max_integrantes > 1) {
+          membresia.integrantes = await this.getIntegrantesMembresia(
+            membresia.id_activa
+          );
+        }
+      }
+
+      return membresias;
+    } catch (error) {
+      console.error("Error al obtener membresías por estado:", error);
+      throw error;
+    }
+  },
+
+  // Buscar membresías por nombre, teléfono o correo
+  async buscarMembresias(termino) {
+    try {
+      const query = `
+        SELECT
+          ma.id_activa,
+          ma.id_cliente,
+          ma.id_membresia,
+          ma.fecha_inicio,
+          ma.fecha_fin,
+          ma.precio_final,
+          ma.estado,
+          c.nombre_completo,
+          c.telefono,
+          c.correo,
+          tm.nombre as tipo_membresia,
+          tm.max_integrantes,
+          DATEDIFF(ma.fecha_fin, CURDATE()) as dias_restantes,
+          CASE
+            WHEN tm.max_integrantes > 1 THEN 'Familiar'
+            ELSE 'Individual'
+          END as tipo,
+          (SELECT COUNT(*) FROM integrantes_membresia im WHERE im.id_activa = ma.id_activa) as total_integrantes
+        FROM membresias_activas ma
+        INNER JOIN clientes c ON ma.id_cliente = c.id_cliente
+        INNER JOIN membresias m ON ma.id_membresia = m.id_membresia
+        INNER JOIN tipos_membresia tm ON m.id_tipo_membresia = tm.id_tipo_membresia
+        WHERE ma.estado = 'Activa'
+          AND (c.nombre_completo LIKE ? OR c.telefono LIKE ? OR c.correo LIKE ?)
+        ORDER BY ma.fecha_fin ASC
+      `;
+
+      const searchTerm = `%${termino}%`;
+      const [membresias] = await pool.query(query, [
+        searchTerm,
+        searchTerm,
+        searchTerm,
+      ]);
+
+      // Para cada membresía familiar, obtener los integrantes
+      for (let membresia of membresias) {
+        if (membresia.max_integrantes > 1) {
+          membresia.integrantes = await this.getIntegrantesMembresia(
+            membresia.id_activa
+          );
+        }
+      }
+
+      return membresias;
+    } catch (error) {
+      console.error("Error al buscar membresías:", error);
       throw error;
     }
   },

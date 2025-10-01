@@ -6,12 +6,22 @@ const listMembershipController = {
       const userRole = req.session.user?.role || "Recepcionista";
       const isAdmin = userRole === "Administrador";
 
-      const { search, status, sortBy, order } = req.query;
+      const { filter, search, type, status } = req.query;
 
-      const [membresias, estadisticas] = await Promise.all([
-        modelList.getMembresias({ search, status, sortBy, order }),
-        modelList.getEstadisticasMembresias()
-      ]);
+      let membresias = [];
+      let estadisticas = {};
+
+      estadisticas = await modelList.getEstadisticasMembresias();
+
+      if (search) {
+        membresias = await modelList.buscarMembresias(search);
+      } else if (type) {
+        membresias = await modelList.getMembresiasPorTipo(type);
+      } else if (status) {
+        membresias = await modelList.getMembresiasPorEstado(status);
+      } else {
+        membresias = await modelList.getMembresiasActivas();
+      }
 
       const membresiasFormateadas = membresias.map((membresia) => {
         const diasRestantes = membresia.dias_restantes;
@@ -51,7 +61,9 @@ const listMembershipController = {
         userRole,
         memberships: membresiasFormateadas,
         estadisticas,
+        currentFilter: filter || "all",
         currentSearch: search || "",
+        currentType: type || "",
         currentStatus: status || "",
         helpers: {
           eq: (a, b) => a === b,
@@ -99,9 +111,19 @@ const listMembershipController = {
 
   async getMembresiasAPI(req, res) {
     try {
-      const { search, status, sortBy, order } = req.query;
+      const { filter, search, type, status } = req.query;
 
-      const membresias = await modelList.getMembresias({ search, status, sortBy, order });
+      let membresias = [];
+
+      if (search) {
+        membresias = await modelList.buscarMembresias(search);
+      } else if (type) {
+        membresias = await modelList.getMembresiasPorTipo(type);
+      } else if (status) {
+        membresias = await modelList.getMembresiasPorEstado(status);
+      } else {
+        membresias = await modelList.getMembresiasActivas();
+      }
 
       const membresiasFormateadas = membresias.map((membresia) => {
         const formatDate = (dateString) => {
