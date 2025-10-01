@@ -4,7 +4,7 @@ import { pool } from "../../../dataBase/conecctionDataBase.js";
 const modelList = {
   async getMembresias({ search = "", status = "all", sortBy = "expiry", order = "asc" } = {}) {
     try {
-      let whereClauses = ["ma.estado = 'Activa'"];
+      let whereClauses = [];
       let params = [];
       let orderByClause = "";
 
@@ -15,19 +15,24 @@ const modelList = {
         params.push(searchTerm, searchTerm, searchTerm);
       }
 
-      // Filtro de estado
-      if (status && status !== "all") {
-        switch (status) {
-          case "active":
-            whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) > 7");
-            break;
-          case "expiring":
-            whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) BETWEEN 1 AND 7");
-            break;
-          case "expired":
-            whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) <= 0");
-            break;
-        }
+      // Filtro de estado (Corregido para manejar correctamente todos los casos)
+      switch (status) {
+        case "active":
+          whereClauses.push("ma.estado = 'Activa' AND DATEDIFF(ma.fecha_fin, CURDATE()) > 7");
+          break;
+        case "expiring":
+          whereClauses.push("ma.estado = 'Activa' AND DATEDIFF(ma.fecha_fin, CURDATE()) BETWEEN 1 AND 7");
+          break;
+        case "expired":
+          // Para 'vencidas', no debemos filtrar por ma.estado = 'Activa' ya que pueden tener otro estado.
+          whereClauses.push("DATEDIFF(ma.fecha_fin, CURDATE()) <= 0");
+          break;
+        case "all":
+        default:
+          // Comportamiento por defecto: mostrar todas las que no estén canceladas, etc.
+          // Replicando el comportamiento original de getMembresiasActivas.
+          whereClauses.push("ma.estado = 'Activa'");
+          break;
       }
 
       // Cláusula de ordenación
