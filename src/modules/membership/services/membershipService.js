@@ -4,7 +4,7 @@ import { modelList } from "../models/modelList.js";
 import { deleteMembershipById } from "../models/modelDelete.js";
 import { updateMembershipById } from "../models/modelEdit.js";
 import { generarQRArchivo } from "../utils/qrGenerator.js";
-import { sendReceiptEmail } from "../utils/nodeMailer.js";
+import { sendMembershipReceiptEmail as sendReceiptEmail } from "../../../services/emailService.js";
 import QRCode from "qrcode";
 import path from "path";
 import { promises as fs } from "fs";
@@ -228,9 +228,8 @@ export const MembershipService = {
     precio_final
   ) {
     if (cliente?.correo) {
-      await sendReceiptEmail({
-        to: cliente.correo,
-        subject: "Comprobante de Membresía - Hotel Club",
+      // Llama al servicio global. El alias de importación es sendReceiptEmail.
+      await sendReceiptEmail(cliente.correo, {
         titularNombre: cliente.nombre_completo,
         tipoMembresia: tipo?.nombre || "N/D",
         fechaInicio: fecha_inicio,
