@@ -1,15 +1,3 @@
-<style>
-    .active-period {
-        background-color: #3B82F6;
-        color: white;
-    }
-
-    #calendar {
-        transition: all 0.3s ease;
-    }
-</style>
-
-
 {{>navbar}}
 
 <!-- Contenido principal -->
@@ -24,7 +12,7 @@
         <div class="mb-8">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Tipo de Reporte</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="period-option border rounded-lg p-4 text-center cursor-pointer transition-all hover:shadow-md active-period"
+                <div class="period-option border rounded-lg p-4 text-center cursor-pointer transition-all hover:shadow-md"
                     data-period="monthly">
                     <i class="fas fa-calendar-month text-4xl text-blue-500 mb-2"></i>
                     <h3 class="font-semibold">Reporte Mensual</h3>
@@ -128,120 +116,4 @@
 
 {{>footer}}
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- Elements ---
-        const periodOptions = document.querySelectorAll('.period-option');
-        const generateBtn = document.getElementById('generate-report-btn');
-        const messageArea = document.getElementById('message-area');
-        const messageText = document.getElementById('message-text');
-        const resultsTable = document.getElementById('results-table');
-        const notificationArea = document.getElementById('notification-area');
-
-        // --- State ---
-        let currentPeriod = 'monthly';
-
-        // --- Functions ---
-        function showMessage(text, type = 'info') {
-            messageText.textContent = text;
-            messageText.className = type === 'error' ? 'text-red-500' : (type === 'warning' ? 'text-yellow-600' : 'text-gray-500');
-            messageArea.classList.remove('hidden');
-            resultsTable.classList.add('hidden');
-        }
-
-        function showResults(data) {
-            const formatCurrency = (value) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
-            document.getElementById('monto-efectivo').textContent = formatCurrency(data.ingresos.efectivo);
-            document.getElementById('monto-debito').textContent = formatCurrency(data.ingresos.debito);
-            document.getElementById('monto-credito').textContent = formatCurrency(data.ingresos.credito);
-            document.getElementById('monto-transferencia').textContent = formatCurrency(data.ingresos.transferencia);
-            document.getElementById('monto-total').textContent = formatCurrency(data.total);
-
-            const { period, date } = getReportParams();
-            document.getElementById('download-pdf-btn').href = `/api/memberships/reports/download?period=${period}&date=${date}`;
-
-            messageArea.classList.add('hidden');
-            resultsTable.classList.remove('hidden');
-        }
-
-        function getReportParams() {
-            let date;
-            switch (currentPeriod) {
-                case 'monthly':
-                    date = document.getElementById('month-input').value;
-                    break;
-                case 'biweekly':
-                    const month = document.getElementById('biweekly-month-input').value;
-                    const fortnight = document.getElementById('fortnight-select').value;
-                    date = `${month}-${fortnight}`;
-                    break;
-                case 'weekly':
-                    const rawDate = document.getElementById('week-input').value;
-                    date = rawDate.replace('-W', 'W');
-                    break;
-            }
-            return { period: currentPeriod, date };
-        }
-
-        async function generateReportPreview() {
-            const { period, date } = getReportParams();
-            if (!date) {
-                showMessage('Por favor, selecciona una fecha válida.', 'error');
-                return;
-            }
-
-            showMessage('Generando vista previa...', 'info');
-
-            try {
-                const url = `/api/memberships/reports/preview?period=${period}&date=${date}`;
-                const response = await fetch(url);
-                const data = await response.json();
-
-                if (!response.ok) throw new Error(data.error || 'No se pudo obtener la vista previa.');
-                if (data.noData) {
-                    showMessage(data.message, 'warning');
-                    return;
-                }
-                showResults(data);
-            } catch (error) {
-                showMessage(`Error: ${error.message}`, 'error');
-            }
-        }
-
-        // --- Event Listeners ---
-        periodOptions.forEach(option => {
-            option.addEventListener('click', function () {
-                currentPeriod = this.getAttribute('data-period');
-                periodOptions.forEach(opt => opt.classList.remove('active-period'));
-                this.classList.add('active-period');
-
-                document.querySelectorAll('.date-selector').forEach(s => s.classList.add('hidden'));
-                document.getElementById(`${currentPeriod}-selector`).classList.remove('hidden');
-            });
-        });
-
-        generateBtn.addEventListener('click', generateReportPreview);
-
-        // --- Initialization ---
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        document.getElementById('month-input').value = `${year}-${month}`;
-        document.getElementById('biweekly-month-input').value = `${year}-${month}`;
-        const firstDayOfYear = new Date(year, 0, 1);
-        const pastDaysOfYear = (today - firstDayOfYear) / 86400000;
-        const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-        document.getElementById('week-input').value = `${year}-W${week.toString().padStart(2, '0')}`;
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const error = urlParams.get('error');
-        if (error) {
-            notificationArea.innerHTML = `
-                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                        <strong class="font-bold">Error: </strong>
-                        <span class="block sm:inline">${decodeURIComponent(error)}</span>
-                    </div>`;
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    });
-</script>
+<script src="/js/moduleMembershipJs/reports.js"></script>

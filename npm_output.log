@@ -1,0 +1,14 @@
+
+> dev-project-residency-hotel-club@1.0.0 dev
+> nodemon index.js
+
+[33m[nodemon] 3.1.10[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): src/**/* index.js[39m
+[33m[nodemon] watching extensions: js,json[39m
+[32m[nodemon] starting `node index.js`[39m
+📁 Directorio creado: public/uploads/receipts
+✅ Estructura de directorios verificada correctamente
+[JobQueue] Servicio de cola iniciado. Verificando tareas pendientes cada 30 segundos.
+Servidor corriendo en: http://localhost:3000
+🌐 Estado de la conexión a Internet: En línea

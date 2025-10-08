@@ -266,7 +266,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-green-100" id="membershipsTableBody">
                     {{#each memberships}}
-                    <tr class="table-row bg-white hover:bg-green-50 transition-all duration-200 group membership-row"
+                    <tr class="bg-white hover:bg-green-50 transition-all duration-200 group membership-row hover:shadow-md transform hover:-translate-x-0.5"
                         data-days-until-expiry="{{this.daysUntilExpiry}}">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
@@ -322,34 +322,34 @@
                             <div class="flex items-center space-x-2">
                                 {{#if this.isFamily}}
                                 <button
-                                    class="view-members-btn action-btn bg-purple-100 text-purple-600 hover:bg-purple-200 "
+                                    class="view-members-btn inline-flex items-center justify-center w-8 h-8 rounded-lg shadow-md transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg bg-purple-100 text-purple-600 hover:bg-purple-200"
                                     title="Ver integrantes" data-id-activa="{{this.id_activa}}">
                                     <i class="fas fa-users"></i>
                                 </button>
                                 {{/if}}
 
                                 <button
-                                    class="view-details-btn action-btn bg-green-100 text-green-600 hover:bg-green-200"
+                                    class="view-details-btn inline-flex items-center justify-center w-8 h-8 rounded-lg shadow-md transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg bg-green-100 text-green-600 hover:bg-green-200"
                                     title="Ver detalles" data-id="{{this.id}}">
                                     <i class="fas fa-eye"></i>
                                 </button>
 
                                 {{#if this.canRenew}}
                                 <a href="/memberships/renew/{{this.id}}"
-                                    class="action-btn bg-blue-100 text-blue-600 hover:bg-blue-200" title="Renovar">
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg shadow-md transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg bg-blue-100 text-blue-600 hover:bg-blue-200" title="Renovar">
                                     <i class="fas fa-sync-alt"></i>
                                 </a>
                                 {{/if}}
 
                                 {{#if ../isAdmin}}
                                 <a href="/memberships/editMembership/{{this.id}}"
-                                    class="action-btn bg-amber-100 text-amber-600 hover:bg-amber-200" title="Editar">
+                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg shadow-md transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg bg-amber-100 text-amber-600 hover:bg-amber-200" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 {{/if}}
                                 {{#if ../isAdmin}}
                                 <button type="button"
-                                    class="delete-btn action-btn bg-red-100 text-red-600 hover:bg-red-200"
+                                    class="delete-btn inline-flex items-center justify-center w-8 h-8 rounded-lg shadow-md transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-lg bg-red-100 text-red-600 hover:bg-red-200"
                                     action="/memberships/deleteMembership" title="Eliminar" data-id="{{this.id_activa}}"
                                     data-name="{{this.fullName}}"
                                     data-type="{{#if this.isFamily}}Familiar{{else}}Individual{{/if}}">
@@ -390,100 +390,9 @@
     </div>
 </div>
 
-<style>
-    .status-badge {
-        padding: 0.35rem 0.7rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        transition: all 0.2s ease;
-        white-space: nowrap;
-    }
-
-    .action-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 2rem;
-        height: 2rem;
-        border-radius: 0.5rem;
-        transition: all 0.2s ease;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .action-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    .table-row {
-        transition: all 0.2s ease;
-    }
-
-    .table-row:hover {
-        transform: translateX(2px);
-    }
-
-    /* Estilos para el modal de integrantes */
-    .integrantes-modal {
-        transition: all 0.3s ease;
-    }
-
-
-    /* Animaciones para el modal */
-    #deleteModal {
-        transition: opacity 0.3s ease;
-    }
-
-    #deleteModal:not(.hidden) {
-        display: flex !important;
-        animation: fadeIn 0.3s ease;
-    }
-
-    #deleteModal .bg-white {
-        animation: slideIn 0.3s ease;
-        transform-origin: center;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    @keyframes slideIn {
-        from {
-            transform: scale(0.95) translateY(-10px);
-            opacity: 0;
-        }
-
-        to {
-            transform: scale(1) translateY(0);
-            opacity: 1;
-        }
-    }
-
-    /* Estilo para botones deshabilitados */
-    button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none !important;
-    }
-
-    /* Mejora visual para el mensaje de confirmación */
-    #deleteModal p strong {
-        color: #dc2626;
-    }
-</style>
 {{!-- Modal Genérico para Confirmación/Notificación --}}
-<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-2xl p-6 w-11/12 md:w-1/3 max-w-md">
+<div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden transition-opacity duration-300 ease-in-out opacity-0" data-state="closed">
+    <div class="bg-white rounded-2xl p-6 w-11/12 md:w-1/3 max-w-md transition-all transform duration-300 ease-in-out scale-95 opacity-0">
         <div class="flex items-center mb-4">
             <div id="deleteModalIconContainer" class="p-3 rounded-full mr-4">
                 <i id="deleteModalIcon" class="text-xl"></i>
@@ -498,31 +407,12 @@
 </div>
 
 <!-- Incluir el script externo -->
-<!-- Script local con verificación -->
 <script src="/js/moduleMembershipJs/listMembership.js"></script>
 <script src="/js/moduleMembershipJs/deleteMembership.js"></script>
-<!-- Script de debug temporal -->
-<script>
-    // Verificar que los elementos existan
-    document.addEventListener('DOMContentLoaded', function () {
-        console.log('DOM cargado');
-        console.log('Modal element:', document.getElementById('deleteModal'));
-        console.log('Delete buttons:', document.querySelectorAll('.delete-btn').length);
-
-        // Verificar data attributes
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            console.log('Button data:', {
-                id: btn.getAttribute('data-id'),
-                name: btn.getAttribute('data-name'),
-                type: btn.getAttribute('data-type')
-            });
-        });
-    });
-</script>
 
 <!-- Templates para Modales -->
 <template id="integrantes-modal-template">
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 integrantes-modal">
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-all duration-300 ease-in-out">
         <div class="bg-white rounded-2xl p-6 w-11/12 md:w-96 max-w-90vw">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">
                 <i class="fas fa-users mr-2 text-purple-500"></i>Integrantes de la Membresía
