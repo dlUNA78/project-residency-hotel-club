@@ -805,7 +805,7 @@ export const MembershipService = {
       fecha_inicio,
       fecha_fin,
       precio_final,
-      integrantes
+      members
     } = data;
 
     // Validar que la membresía a actualizar existe
@@ -825,7 +825,7 @@ export const MembershipService = {
     const updateData = {
       membershipData,
       tipo: tipo,
-      integrantes: integrantes || []
+      integrantes: members || []
     };
 
     return await updateMembershipById(id, updateData);

@@ -2,25 +2,25 @@
 <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md overflow-hidden mt-20 border border-green-200">
     <div class="p-6 border-b border-green-200">
         <h1 class="text-2xl font-bold text-green-800">Crear Cliente</h1>
-        <form id="form-cliente" action="/memberships/createClient" method="POST" class="mt-4 space-y-4" novalidate>
+        <form id="client-form" action="/memberships/createClient" method="POST" class="mt-4 space-y-4" novalidate>
             <div>
-                <label for="nombre_completo" class="block text-sm font-medium text-green-700">Nombre
+                <label for="fullName" class="block text-sm font-medium text-green-700">Nombre
                     completo</label>
-                <input type="text" id="nombre_completo" name="nombre_completo" required
+                <input type="text" id="fullName" name="nombre_completo" required
                     class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                 <p class="mt-2 text-sm text-red-600 hidden error-message"></p>
             </div>
 
             <div>
-                <label for="telefono" class="block text-sm font-medium text-green-700">Teléfono</label>
-                <input type="text" id="telefono" name="telefono"
+                <label for="phone" class="block text-sm font-medium text-green-700">Teléfono</label>
+                <input type="text" id="phone" name="telefono"
                     class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                 <p class="mt-2 text-sm text-red-600 hidden error-message"></p>
             </div>
 
             <div>
-                <label for="correo" class="block text-sm font-medium text-green-700">Correo</label>
-                <input type="email" id="correo" name="correo" required
+                <label for="email" class="block text-sm font-medium text-green-700">Correo</label>
+                <input type="email" id="email" name="correo" required
                     class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                 <p class="mt-2 text-sm text-red-600 hidden error-message"></p>
             </div>
@@ -30,20 +30,20 @@
                 Registrar Cliente
             </button>
 
-            <div id="cliente-message" class="hidden text-sm font-medium"></div>
+            <div id="client-message" class="hidden text-sm font-medium"></div>
         </form>
     </div>
 
     <div class="p-6">
         <h1 class="text-2xl font-bold text-green-800">Crear Membresía</h1>
-        <form id="createMemberForm" action="/memberships/createMembership" method="POST" class="mt-4 space-y-4"
+        <form id="membership-form" action="/memberships/createMembership" method="POST" class="mt-4 space-y-4"
             novalidate>
-            <input type="hidden" id="id_cliente" name="id_cliente" value="">
+            <input type="hidden" id="clientId" name="id_cliente" value="">
 
             <div>
-                <label for="tipoMembresia" class="block text-sm font-medium text-green-700">Tipo de
+                <label for="membershipType" class="block text-sm font-medium text-green-700">Tipo de
                     membresía:</label>
-                <select id="tipoMembresia" name="id_tipo_membresia" required
+                <select id="membershipType" name="id_tipo_membresia" required
                     class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                     {{#each tiposMembresia}}
                     <option value="{{id_tipo_membresia}}" data-max="{{max_integrantes}}" data-precio="{{precio}}">
@@ -55,32 +55,32 @@
             </div>
 
             <div>
-                <label for="fecha_inicio" class="block text-sm font-medium text-green-700">Fecha de inicio:</label>
-                <input type="date" id="fecha_inicio" name="fecha_inicio" required
+                <label for="startDate" class="block text-sm font-medium text-green-700">Fecha de inicio:</label>
+                <input type="date" id="startDate" name="fecha_inicio" required
                     class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                 <p class="mt-2 text-sm text-red-600 hidden error-message"></p>
             </div>
 
             <div>
-                <label for="fecha_fin" class="block text-sm font-medium text-green-700">Fecha de fin:</label>
-                <input type="date" id="fecha_fin" name="fecha_fin" readonly
+                <label for="endDate" class="block text-sm font-medium text-green-700">Fecha de fin:</label>
+                <input type="date" id="endDate" name="fecha_fin" readonly
                     class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm bg-green-50">
             </div>
 
-            <input type="hidden" id="precio_final" name="precio_final" value="">
+            <input type="hidden" id="finalPriceHidden" name="precio_final" value="">
 
-            <div id="integrantesSection" class="hidden mt-4 p-4 border border-green-200 rounded-md bg-green-50">
+            <div id="members-section" class="hidden mt-4 p-4 border border-green-200 rounded-md bg-green-50">
                 <h4 class="text-sm font-medium text-green-700 mb-2">Integrantes familiares</h4>
-                <div id="integrantesContainer" class="space-y-2"></div>
-                <button type="button" id="addIntegranteBtn"
+                <div id="members-container" class="space-y-2"></div>
+                <button type="button" id="add-member-button"
                     class="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                     ➕ Agregar integrante
                 </button>
             </div>
 
             <div>
-                <label for="metodo_pago" class="block text-sm font-medium text-green-700">Método de pago:</label>
-                <select id="metodo_pago" name="metodo_pago" required
+                <label for="paymentMethod" class="block text-sm font-medium text-green-700">Método de pago:</label>
+                <select id="paymentMethod" name="metodo_pago" required
                     class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                     <option value="">Seleccione un método de pago</option>
                     {{#each tiposPago}}
@@ -91,27 +91,27 @@
             </div>
 
             <div class="mt-4">
-                <label for="precioFinal" class="block text-sm font-medium text-green-700">Precio final:</label>
-                <input type="text" id="precioFinal" readonly
+                <label for="finalPrice" class="block text-sm font-medium text-green-700">Precio final:</label>
+                <input type="text" id="finalPrice" readonly
                     class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm bg-green-50">
             </div>
 
             {{#if isAdmin}}
             <div class="flex items-end space-x-2">
                 <div class="flex-1">
-                    <label for="descuento" class="block text-sm font-medium text-green-700">Descuento (%):</label>
-                    <input type="number" id="descuento" name="descuento" min="0" max="100" value="0"
+                    <label for="discount" class="block text-sm font-medium text-green-700">Descuento (%):</label>
+                    <input type="number" id="discount" name="descuento" min="0" max="100" value="0"
                         class="mt-1 block w-full px-3 py-2 border border-green-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
                     <p class="mt-2 text-sm text-red-600 hidden error-message"></p>
                 </div>
-                <button type="button" id="aplicarDescuentoBtn"
+                <button type="button" id="apply-discount-button"
                     class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                     Aplicar
                 </button>
             </div>
             {{/if}}
 
-            <button type="submit" id="submit-membership" disabled
+            <button type="submit" id="submit-membership-button" disabled
                 class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">
                 Crear Membresía (complete primero el cliente)
             </button>
@@ -122,36 +122,36 @@
 </div>
 
 <!-- Modal para confirmación de cliente -->
-<div id="clienteModal"
+<div id="client-modal"
     class="fixed inset-0 bg-black bg-opacity-50 max-h-[100vh] overflow-y-auto flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 class="text-lg font-bold text-green-800 mb-4">Confirmar Datos del Cliente</h3>
-        <div id="clienteModalContent" class="mb-4 space-y-2"></div>
+        <div id="client-modal-content" class="mb-4 space-y-2"></div>
         <div class="flex justify-end space-x-3">
-            <button id="cancelClienteBtn" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
-            <button id="confirmClienteBtn"
+            <button id="cancel-client-button" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
+            <button id="confirm-client-button"
                 class="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">Confirmar</button>
         </div>
     </div>
 </div>
 
 <!-- Modal para confirmación de membresía -->
-<div id="membershipModal"
+<div id="membership-modal"
     class="fixed inset-0 bg-black bg-opacity-50 max-h-[80vh] overflow-y-auto flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-bold text-green-800 mb-4">Confirmar Membresía</h3>
-        <div id="membershipModalContent" class="mb-4 space-y-2"></div>
+        <div id="membership-modal-content" class="mb-4 space-y-2"></div>
         <div class="flex justify-end space-x-3">
-            <button id="cancelMembershipBtn"
+            <button id="cancel-membership-button"
                 class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancelar</button>
-            <button id="confirmMembershipBtn"
+            <button id="confirm-membership-button"
                 class="px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700">Confirmar</button>
         </div>
     </div>
 </div>
 
+<script src="/js/moduleMembershipJs/formValidator.js"></script>
 <script src="/js/moduleMembershipJs/createMembership.js"></script>
-<script src="/js/moduleMembershipJs/validator.js"></script>
 
 <!-- Template para el modal de éxito -->
 <template id="success-modal-template">

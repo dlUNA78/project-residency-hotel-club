@@ -1,144 +1,159 @@
-// Funciones de utilidad
-const MembershipUI = {
-  init: function () {
+/**
+ * @file Manages the UI and logic for the membership list page.
+ * @description This class handles filtering, sorting, searching, and displaying modals for member details and family members.
+ */
+class MembershipListManager {
+  /**
+   * Initializes the manager by caching DOM elements and binding events.
+   */
+  constructor() {
+    this.dom = {};
+    this.cacheDOM();
     this.bindEvents();
     this.applyInitialFormatting();
-  },
+  }
 
-  bindEvents: function () {
-    // Referencias a elementos del DOM
-    this.reportButton = document.getElementById("reportButton");
-    this.reportModal = document.getElementById("reportModal");
-    this.closeReportModal = document.getElementById("closeReportModal");
-    this.searchInput = document.getElementById("searchInput");
-    this.statusFilter = document.getElementById("statusFilter");
-    this.sortBy = document.getElementById("sortBy");
-    this.membershipRows = document.querySelectorAll(".membership-row");
+  /**
+   * Gathers and stores references to all necessary DOM elements.
+   */
+  cacheDOM() {
+    this.dom.reportButton = document.getElementById("reportButton");
+    this.dom.reportModal = document.getElementById("reportModal");
+    this.dom.closeReportModal = document.getElementById("closeReportModal");
+    this.dom.searchInput = document.getElementById("searchInput");
+    this.dom.statusFilter = document.getElementById("statusFilter");
+    this.dom.sortBy = document.getElementById("sortBy");
+    this.dom.membershipsTableBody = document.getElementById("membershipsTableBody");
+    this.dom.memberModalTemplate = document.getElementById('integrantes-modal-template');
+    this.dom.detailsModalTemplate = document.getElementById('details-modal-template');
+  }
 
-    // Modal de reportes para administradores
-    if (this.reportButton && this.reportModal && this.closeReportModal) {
-      this.reportButton.addEventListener("click", () => {
-        this.reportModal.classList.remove("hidden");
-      });
-
-      this.closeReportModal.addEventListener("click", () => {
-        this.reportModal.classList.add("hidden");
-      });
-
-      // Cerrar modal al hacer clic fuera del contenido
-      this.reportModal.addEventListener("click", (e) => {
-        if (e.target === this.reportModal) {
-          this.reportModal.classList.add("hidden");
+  /**
+   * Attaches event listeners to the DOM elements.
+   */
+  bindEvents() {
+    // Report Modal Listeners
+    if (this.dom.reportButton && this.dom.reportModal && this.dom.closeReportModal) {
+      this.dom.reportButton.addEventListener("click", () => this.toggleReportModal(true));
+      this.dom.closeReportModal.addEventListener("click", () => this.toggleReportModal(false));
+      this.dom.reportModal.addEventListener("click", (e) => {
+        if (e.target === this.dom.reportModal) {
+          this.toggleReportModal(false);
         }
       });
     }
 
-    // Búsqueda y filtros
-    if (this.searchInput) {
-      this.searchInput.addEventListener("input", () => {
-        this.filterMemberships();
-      });
+    // Filter and Sort Listeners
+    const filterSortHandler = () => this.filterAndSortMemberships();
+    if (this.dom.searchInput) {
+      this.dom.searchInput.addEventListener("input", filterSortHandler);
+    }
+    if (this.dom.statusFilter) {
+      this.dom.statusFilter.addEventListener("change", filterSortHandler);
+    }
+    if (this.dom.sortBy) {
+      this.dom.sortBy.addEventListener("change", filterSortHandler);
     }
 
-    if (this.statusFilter) {
-      this.statusFilter.addEventListener("change", () => {
-        this.filterMemberships();
-      });
-    }
-
-    if (this.sortBy) {
-      this.sortBy.addEventListener("change", () => {
-        this.filterMemberships();
-      });
-    }
-
-    // Delegación de eventos para el botón de ver integrantes
+    // Event delegation for action buttons
     document.addEventListener('click', (e) => {
       const viewMembersBtn = e.target.closest('.view-members-btn');
       if (viewMembersBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        // Pasar el botón como contexto
-        this.handleViewMembersClick({ 
-          currentTarget: viewMembersBtn,
-          preventDefault: () => e.preventDefault(),
-          stopPropagation: () => e.stopPropagation()
-        });
+        this.handleViewMembersClick(viewMembersBtn);
+        return;
       }
 
       const viewDetailsBtn = e.target.closest('.view-details-btn');
       if (viewDetailsBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.handleViewDetailsClick({
-          currentTarget: viewDetailsBtn,
-          preventDefault: () => e.preventDefault(),
-          stopPropagation: () => e.stopPropagation()
-        });
+        this.handleViewDetailsClick(viewDetailsBtn);
       }
     });
-  },
+  }
 
-  applyInitialFormatting: function () {
-    // Iniciales de los nombres con avatar de gradiente
-    const initialElements = document.querySelectorAll("[data-initial]");
-    initialElements.forEach((element) => {
+  /**
+   * Toggles the visibility of the report modal.
+   * @param {boolean} show - True to show the modal, false to hide it.
+   */
+  toggleReportModal(show) {
+      if (show) {
+          this.dom.reportModal.classList.remove("hidden");
+      } else {
+          this.dom.reportModal.classList.add("hidden");
+      }
+  }
+
+  /**
+   * Applies initial UI formatting, like generating avatars and formatting dates.
+   */
+  applyInitialFormatting() {
+    document.querySelectorAll("[data-initial]").forEach((element) => {
       const name = element.getAttribute("data-initial");
-      element.textContent = this.getFirstLetter(name);
+      element.textContent = this.getInitials(name);
     });
 
-    // Formatear todas las fechas en la tabla
-    const dateFields = document.querySelectorAll(".date-field");
-    dateFields.forEach((field) => {
+    document.querySelectorAll(".date-field").forEach((field) => {
       const dateText = field.textContent.trim();
       if (dateText && !isNaN(new Date(dateText).getTime())) {
         field.textContent = this.formatDate(dateText);
         field.setAttribute("data-original", dateText);
       }
     });
-  },
+  }
 
-  getFirstLetter: function (name) {
+  /**
+   * Gets the first letter of a name for an avatar.
+   * @param {string} name - The full name.
+   * @returns {string} The capitalized first letter.
+   */
+  getInitials(name) {
     return name ? name.charAt(0).toUpperCase() : "";
-  },
+  }
 
-  formatDate: function (dateString) {
+  /**
+   * Formats a date string into DD/MM/YY format.
+   * @param {string} dateString - The ISO date string.
+   * @returns {string} The formatted date.
+   */
+  formatDate(dateString) {
     if (!dateString) return "";
     const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear().toString().slice(-2);
     return `${day}/${month}/${year}`;
-  },
+  }
 
-  
-  showIntegrantesModal: function (integrantes) {
-    if (!integrantes || integrantes.length === 0) {
-      alert("Esta membresía no tiene integrantes registrados");
+  /**
+   * Displays a modal with the list of family members.
+   * @param {Array<object>} members - An array of member objects.
+   */
+  showMembersModal(members) {
+    if (!members || members.length === 0) {
+      alert("This membership has no registered members.");
       return;
     }
 
-    const template = document.getElementById('integrantes-modal-template');
-    if (!template) {
-        console.error('Template "integrantes-modal-template" no encontrado.');
-        return;
+    if (!this.dom.memberModalTemplate) {
+      console.error('Template "#integrantes-modal-template" not found.');
+      return;
     }
-    const modalClone = template.content.cloneNode(true);
+
+    const modalClone = this.dom.memberModalTemplate.content.cloneNode(true);
     const listContainer = modalClone.querySelector('[data-template-content="integrantes-list"]');
 
-    integrantes.forEach(int => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td class="py-2">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                        <span class="text-purple-600 font-bold">${this.getFirstLetter(int.nombre_completo)}</span>
-                    </div>
-                    <span class="text-sm text-gray-700">${int.nombre_completo || "Sin nombre"}</span>
+    members.forEach(member => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="py-2">
+            <div class="flex items-center">
+                <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-purple-600 font-bold">${this.getInitials(member.nombre_completo)}</span>
                 </div>
-            </td>
-        `;
-        listContainer.appendChild(row);
+                <span class="text-sm text-gray-700">${member.nombre_completo || "No name"}</span>
+            </div>
+        </td>
+      `;
+      listContainer.appendChild(row);
     });
 
     const modalElement = modalClone.firstElementChild;
@@ -147,40 +162,35 @@ const MembershipUI = {
     const closeModal = () => modalElement.remove();
     modalElement.querySelector('.close-integrantes-modal').addEventListener('click', closeModal);
     modalElement.addEventListener('click', (e) => {
-        if (e.target === modalElement) closeModal();
+      if (e.target === modalElement) closeModal();
     });
-  },
+  }
 
-  showDetailsModal: function (details) {
-    const template = document.getElementById('details-modal-template');
-    if (!template) {
-        console.error('Template "details-modal-template" no encontrado.');
-        return;
+  /**
+   * Displays a modal with detailed information about a membership.
+   * @param {object} details - The membership details object from the API.
+   */
+  showDetailsModal(details) {
+    if (!this.dom.detailsModalTemplate) {
+      console.error('Template "#details-modal-template" not found.');
+      return;
     }
-    const modalClone = template.content.cloneNode(true);
+    const modalClone = this.dom.detailsModalTemplate.content.cloneNode(true);
 
     const infoContainer = modalClone.querySelector('[data-template-content="details-info"]');
     const qrContainer = modalClone.querySelector('[data-template-content="details-qr"]');
 
-    // Populate Info
-    let infoHtml = `
-        <div><p class="text-sm font-semibold text-gray-500">Titular</p><p class="text-lg font-medium text-gray-900">${details.nombre_completo}</p></div>
-        <div><p class="text-sm font-semibold text-gray-500">Tipo de Membresía</p><p class="text-lg font-medium text-gray-900">${details.tipo_membresia}</p></div>
-        <div><p class="text-sm font-semibold text-gray-500">Periodo</p><p class="text-lg font-medium text-gray-900">${this.formatDate(details.fecha_inicio)} - ${this.formatDate(details.fecha_fin)}</p></div>`;
+    infoContainer.innerHTML = `
+      <div><p class="text-sm font-semibold text-gray-500">Holder</p><p class="text-lg font-medium text-gray-900">${details.nombre_completo}</p></div>
+      <div><p class="text-sm font-semibold text-gray-500">Membership Type</p><p class="text-lg font-medium text-gray-900">${details.tipo_membresia}</p></div>
+      <div><p class="text-sm font-semibold text-gray-500">Period</p><p class="text-lg font-medium text-gray-900">${this.formatDate(details.fecha_inicio)} - ${this.formatDate(details.fecha_fin)}</p></div>
+      ${(details.integrantes && details.integrantes.length > 0) ? `<div><p class="text-sm font-semibold text-gray-500">Members</p><ul class="list-disc list-inside mt-1 space-y-1">${details.integrantes.map(int => `<li class="text-gray-700">${int.nombre_completo}</li>`).join('')}</ul></div>` : ''}
+      ${(details.pagos && details.pagos.length > 0) ? `<div><p class="text-sm font-semibold text-gray-500">Last Payment</p><p class="text-lg font-medium text-gray-900">$${details.pagos[0].monto} (${details.pagos[0].metodo_pago})</p></div>` : ''}
+    `;
 
-    if (details.integrantes && details.integrantes.length > 0) {
-        infoHtml += `<div><p class="text-sm font-semibold text-gray-500">Integrantes</p><ul class="list-disc list-inside mt-1 space-y-1">${details.integrantes.map(int => `<li class="text-gray-700">${int.nombre_completo}</li>`).join('')}</ul></div>`;
-    }
-
-    if (details.pagos && details.pagos.length > 0) {
-        infoHtml += `<div><p class="text-sm font-semibold text-gray-500">Último Pago</p><p class="text-lg font-medium text-gray-900">$${details.pagos[0].monto} (${details.pagos[0].metodo_pago})</p></div>`;
-    }
-    infoContainer.innerHTML = infoHtml;
-
-    // Populate QR
-    let qrHtml = `<img src="${details.qr_path}?t=${new Date().getTime()}" alt="Código QR" class="w-48 h-48">`;
+    let qrHtml = `<img src="${details.qr_path}?t=${new Date().getTime()}" alt="QR Code" class="w-48 h-48">`;
     if (details.isAdmin) {
-        qrHtml += `<a href="${details.qr_path}" download="qr-membresia-${details.id_activa}.png" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"><i class="fas fa-download mr-2"></i>Descargar QR</a>`;
+      qrHtml += `<a href="${details.qr_path}" download="qr-membership-${details.id_activa}.png" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"><i class="fas fa-download mr-2"></i>Download QR</a>`;
     }
     qrContainer.innerHTML = qrHtml;
 
@@ -190,176 +200,126 @@ const MembershipUI = {
     const closeModal = () => modalElement.remove();
     modalElement.querySelectorAll('.close-details-modal').forEach(btn => btn.addEventListener('click', closeModal));
     modalElement.addEventListener('click', (e) => {
-        if (e.target === modalElement) closeModal();
+      if (e.target === modalElement) closeModal();
     });
-  },
+  }
 
-  handleViewDetailsClick: function (e) {
-    const button = e.currentTarget;
+  /**
+   * Fetches and displays membership details when a 'View Details' button is clicked.
+   * @param {HTMLElement} button - The button element that was clicked.
+   */
+  async handleViewDetailsClick(button) {
     const id = button.getAttribute("data-id");
-
-    if (!id) {
-      console.error("No se encontró el ID de la membresía");
-      return;
-    }
+    if (!id) return console.error("Membership ID not found on button.");
 
     const originalHtml = button.innerHTML;
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    fetch(`/api/memberships/details/${id}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Error al cargar los detalles');
-        }
-        return response.json();
-      })
-      .then(details => {
-        this.showDetailsModal(details);
-      })
-      .catch(error => {
-        console.error("Error al obtener detalles de la membresía:", error);
-      })
-      .finally(() => {
-        button.innerHTML = originalHtml;
-        button.disabled = false;
-      });
-  },
-
-  handleViewMembersClick: function (e) {
-    const button = e.currentTarget;
-    const idActiva = button.getAttribute("data-id-activa");
-    console.log("BOTON PRESIONADO")
-    console.log("ID ACTIVA ->", idActiva);
-
-    if (!idActiva) {
-      console.error("No se encontró el ID de la membresía activa");
-      this.showMessage("No se pudo obtener la información de la membresía", "error");
-      return;
+    try {
+      const response = await fetch(`/api/memberships/details/${id}`);
+      if (!response.ok) throw new Error('Failed to load details.');
+      const details = await response.json();
+      this.showDetailsModal(details);
+    } catch (error) {
+      console.error("Error fetching membership details:", error);
+      alert("Error: Could not retrieve membership details.");
+    } finally {
+      button.innerHTML = originalHtml;
+      button.disabled = false;
     }
+  }
 
-    // Mostrar indicador de carga
+  /**
+   * Fetches and displays family members when a 'View Members' button is clicked.
+   * @param {HTMLElement} button - The button element that was clicked.
+   */
+  async handleViewMembersClick(button) {
+    const activeId = button.getAttribute("data-id-activa");
+    if (!activeId) return alert("Could not get membership information.");
+
     const originalHtml = button.innerHTML;
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    // Hacemos la llamada a la API
-    fetch(`/api/memberships/${idActiva}/integrantes`, {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      credentials: 'same-origin' // Asegura que las cookies se envíen con la solicitud
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-      })
-      .then((integrantes) => {
-        console.log("Integrantes recibidos:", integrantes);
-        this.showIntegrantesModal(integrantes);
-      })
-      .catch((error) => {
-        console.error("Error al obtener integrantes:", error);
-        this.showMessage(`Error al cargar los integrantes: ${error.message}`, "error");
-      })
-      .finally(() => {
-        // Restaurar el botón a su estado original
-        button.innerHTML = originalHtml;
-        button.disabled = false;
-      });
-  },
+    try {
+      const response = await fetch(`/api/memberships/${activeId}/integrantes`);
+      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+      const members = await response.json();
+      this.showMembersModal(members);
+    } catch (error) {
+      console.error("Error fetching members:", error);
+      alert(`Error loading members: ${error.message}`);
+    } finally {
+      button.innerHTML = originalHtml;
+      button.disabled = false;
+    }
+  }
 
-  filterMemberships: function () {
-    const searchTerm = this.searchInput
-      ? this.searchInput.value.toLowerCase()
-      : "";
-    const statusValue = this.statusFilter ? this.statusFilter.value : "all";
-    const sortValue = this.sortBy ? this.sortBy.value : "expiry";
+  /**
+   * Filters and sorts the memberships table based on current UI controls.
+   */
+  filterAndSortMemberships() {
+    const searchTerm = this.dom.searchInput ? this.dom.searchInput.value.toLowerCase() : "";
+    const statusValue = this.dom.statusFilter ? this.dom.statusFilter.value : "all";
+    const sortValue = this.dom.sortBy ? this.dom.sortBy.value : "expiry";
 
-    this.membershipRows.forEach((row) => {
-      const text = row.textContent.toLowerCase();
+    const rows = this.dom.membershipsTableBody.querySelectorAll(".membership-row");
+
+    rows.forEach((row) => {
+      const textContent = row.textContent.toLowerCase();
       const statusBadge = row.querySelector(".status-badge");
-      let statusMatch = true;
 
-      // Filtrar por estado
+      let statusMatch = true;
       if (statusValue !== "all") {
+        const statusText = statusBadge ? statusBadge.textContent.toLowerCase() : "";
         if (statusValue === "active") {
-          statusMatch =
-            statusBadge &&
-            statusBadge.textContent.includes("Activa") &&
-            !statusBadge.textContent.includes("Vencida");
+          statusMatch = statusText.includes("activa");
         } else if (statusValue === "expiring") {
-          statusMatch =
-            statusBadge && statusBadge.textContent.includes("vencer");
+          statusMatch = statusText.includes("vencer");
         } else if (statusValue === "expired") {
-          statusMatch =
-            statusBadge && statusBadge.textContent.includes("Vencida");
+          statusMatch = statusText.includes("vencida");
         }
       }
 
-      // Filtrar por término de búsqueda
-      const searchMatch = searchTerm === "" || text.includes(searchTerm);
-
-      // Mostrar u ocultar fila según los filtros
-      if (searchMatch && statusMatch) {
-        row.style.display = "";
-        row.classList.add("bg-green-100");
-        setTimeout(() => row.classList.remove("bg-green-100"), 1000);
-      } else {
-        row.style.display = "none";
-      }
+      const searchMatch = searchTerm === "" || textContent.includes(searchTerm);
+      row.style.display = (searchMatch && statusMatch) ? "" : "none";
     });
 
-    // Ordenar resultados
     this.sortTable(sortValue);
-  },
+  }
 
-  sortTable: function (criteria) {
-    const tbody = document.getElementById("membershipsTableBody");
-    if (!tbody) return;
+  /**
+   * Sorts the table rows in the DOM based on the selected criteria.
+   * @param {'expiry'|'recent'|'name'} criteria - The sorting criteria.
+   */
+  sortTable(criteria) {
+    if (!this.dom.membershipsTableBody) return;
 
-    const rows = Array.from(tbody.querySelectorAll(".membership-row"));
+    const rows = Array.from(this.dom.membershipsTableBody.querySelectorAll(".membership-row"));
 
     rows.sort((a, b) => {
-      if (criteria === "name") {
-        const nameElementA = a.querySelector(".text-sm.font-semibold");
-        const nameElementB = b.querySelector(".text-sm.font-semibold");
-        const nameA = nameElementA
-          ? nameElementA.textContent.toLowerCase()
-          : "";
-        const nameB = nameElementB
-          ? nameElementB.textContent.toLowerCase()
-          : "";
-        return nameA.localeCompare(nameB);
-      } else if (criteria === "recent") {
-        const dateFieldsA = a.querySelectorAll(".date-field");
-        const dateFieldsB = b.querySelectorAll(".date-field");
-        const dateA =
-          dateFieldsA.length > 0
-            ? new Date(dateFieldsA[0].getAttribute("data-original"))
-            : new Date(0);
-        const dateB =
-          dateFieldsB.length > 0
-            ? new Date(dateFieldsB[0].getAttribute("data-original"))
-            : new Date(0);
-        return dateB - dateA;
-      } else {
-        // expiry por defecto
-        const daysA = parseInt(a.getAttribute('data-days-until-expiry'), 10);
-        const daysB = parseInt(b.getAttribute('data-days-until-expiry'), 10);
-        return daysA - daysB;
+      switch (criteria) {
+        case "name":
+          const nameA = a.querySelector(".text-sm.font-semibold")?.textContent.toLowerCase() || "";
+          const nameB = b.querySelector(".text-sm.font-semibold")?.textContent.toLowerCase() || "";
+          return nameA.localeCompare(nameB);
+        case "recent":
+          const dateA = new Date(a.querySelector(".date-field[data-original]")?.getAttribute("data-original") || 0);
+          const dateB = new Date(b.querySelector(".date-field[data-original]")?.getAttribute("data-original") || 0);
+          return dateB - dateA;
+        case "expiry":
+        default:
+          const daysA = parseInt(a.getAttribute('data-days-until-expiry'), 10);
+          const daysB = parseInt(b.getAttribute('data-days-until-expiry'), 10);
+          return daysA - daysB;
       }
     });
 
-    // Limpiar y reordenar la tabla
-    rows.forEach((row) => tbody.appendChild(row));
-  },
-};
+    rows.forEach(row => this.dom.membershipsTableBody.appendChild(row));
+  }
+}
 
-// Inicializar cuando el DOM esté listo
-document.addEventListener("DOMContentLoaded", function () {
-  MembershipUI.init();
+document.addEventListener("DOMContentLoaded", () => {
+  new MembershipListManager();
 });

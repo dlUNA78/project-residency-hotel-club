@@ -123,29 +123,29 @@
         <div class="mb-8">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-800 flex items-center">
-                    <i class="fas fa-users mr-2 text-green-500"></i> Integrantes
+                    <i class="fas fa-users mr-2 text-green-500"></i> Members
                 </h2>
-                <button type="button" id="addIntegrante"
+                <button type="button" id="addMemberButton"
                     class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <i class="fas fa-plus mr-1"></i> Agregar Integrante
+                    <i class="fas fa-plus mr-1"></i> Add Member
                 </button>
             </div>
 
-            <div id="integrantesContainer" class="space-y-4">
+            <div id="membersContainer" class="space-y-4">
                 {{#each membership.integrantes}}
-                <div class="integrante-item bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <input type="hidden" name="integrantes[{{@index}}][id_integrante]" value="{{this.id_integrante}}">
+                <div class="member-item bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <input type="hidden" name="members[{{@index}}][id_integrante]" value="{{this.id_integrante}}">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-gray-700 text-sm font-medium mb-1">Nombre Completo</label>
-                            <input type="text" name="integrantes[{{@index}}][nombre_completo]"
+                            <input type="text" name="members[{{@index}}][nombre_completo]"
                                 value="{{this.nombre_completo}}"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                                 required>
                         </div>
                         <div class="flex items-end">
                             <button type="button"
-                                class="remove-integrante inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                class="remove-member-button inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                                 <i class="fas fa-trash mr-1"></i> Eliminar
                             </button>
                         </div>
@@ -174,19 +174,19 @@
 <script src="/js/moduleMembershipJs/editMembership.js"></script>
 
 <!-- Template para un nuevo integrante -->
-<template id="integrante-template">
-    <div class="integrante-item bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <input type="hidden" name="integrantes[__INDEX__][id_integrante]" value="">
+<template id="member-template">
+    <div class="member-item bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <input type="hidden" name="members[__INDEX__][id_integrante]" value="">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-gray-700 text-sm font-medium mb-1">Nombre Completo</label>
-                <input type="text" name="integrantes[__INDEX__][nombre_completo]"
+                <input type="text" name="members[__INDEX__][nombre_completo]"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
                     required>
             </div>
             <div class="flex items-end">
                 <button type="button"
-                    class="remove-integrante inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    class="remove-member-button inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     <i class="fas fa-trash mr-1"></i> Eliminar
                 </button>
             </div>

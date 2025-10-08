@@ -1,124 +1,212 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- Elements ---
-    const periodOptions = document.querySelectorAll('.period-option');
-    const generateBtn = document.getElementById('generate-report-btn');
-    const messageArea = document.getElementById('message-area');
-    const messageText = document.getElementById('message-text');
-    const resultsTable = document.getElementById('results-table');
-    const notificationArea = document.getElementById('notification-area');
+/**
+ * @file Manages the report generation UI and logic.
+ * @description This class handles period selection, date inputs, and fetching/displaying report previews.
+ */
+class ReportManager {
+  /**
+   * Initializes the report manager.
+   */
+  constructor() {
+    this.dom = {};
+    this.state = {
+      currentPeriod: 'monthly', // Default period
+    };
+    this.cacheDOM();
+    this.bindEvents();
+    this.initializeDateInputs();
+  }
 
-    // --- State ---
-    let currentPeriod = 'monthly';
+  /**
+   * Caches all required DOM elements for performance.
+   */
+  cacheDOM() {
+    this.dom.periodOptions = document.querySelectorAll('.period-option');
+    this.dom.generateReportButton = document.getElementById('generateReportButton');
+    this.dom.messageArea = document.getElementById('messageArea');
+    this.dom.messageText = document.getElementById('messageText');
+    this.dom.resultsTable = document.getElementById('resultsTable');
+    this.dom.notificationArea = document.getElementById('notificationArea');
+    this.dom.downloadPdfButton = document.getElementById('downloadPdfButton');
 
-    // --- Functions ---
-    function showMessage(text, type = 'info') {
-        messageText.textContent = text;
-        messageText.className = type === 'error' ? 'text-red-500' : (type === 'warning' ? 'text-yellow-600' : 'text-gray-500');
-        messageArea.classList.remove('hidden');
-        resultsTable.classList.add('hidden');
-    }
+    // Date selectors
+    this.dom.dateSelectors = document.querySelectorAll('.date-selector');
+    this.dom.monthInput = document.getElementById('monthInput');
+    this.dom.biweeklyMonthInput = document.getElementById('biweeklyMonthInput');
+    this.dom.fortnightSelect = document.getElementById('fortnightSelect');
+    this.dom.weekInput = document.getElementById('weekInput');
 
-    function showResults(data) {
-        const formatCurrency = (value) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
-        document.getElementById('monto-efectivo').textContent = formatCurrency(data.ingresos.efectivo);
-        document.getElementById('monto-debito').textContent = formatCurrency(data.ingresos.debito);
-        document.getElementById('monto-credito').textContent = formatCurrency(data.ingresos.credito);
-        document.getElementById('monto-transferencia').textContent = formatCurrency(data.ingresos.transferencia);
-        document.getElementById('monto-total').textContent = formatCurrency(data.total);
+    // Result fields
+    this.dom.cashAmount = document.getElementById('cashAmount');
+    this.dom.debitAmount = document.getElementById('debitAmount');
+    this.dom.creditAmount = document.getElementById('creditAmount');
+    this.dom.transferAmount = document.getElementById('transferAmount');
+    this.dom.totalAmount = document.getElementById('totalAmount');
+  }
 
-        const { period, date } = getReportParams();
-        document.getElementById('download-pdf-btn').href = `/api/memberships/reports/download?period=${period}&date=${date}`;
-
-        messageArea.classList.add('hidden');
-        resultsTable.classList.remove('hidden');
-    }
-
-    function getReportParams() {
-        let date;
-        switch (currentPeriod) {
-            case 'monthly':
-                date = document.getElementById('month-input').value;
-                break;
-            case 'biweekly':
-                const month = document.getElementById('biweekly-month-input').value;
-                const fortnight = document.getElementById('fortnight-select').value;
-                date = `${month}-${fortnight}`;
-                break;
-            case 'weekly':
-                const rawDate = document.getElementById('week-input').value;
-                date = rawDate.replace('-W', 'W');
-                break;
-        }
-        return { period: currentPeriod, date };
-    }
-
-    async function generateReportPreview() {
-        const { period, date } = getReportParams();
-        if (!date) {
-            showMessage('Por favor, selecciona una fecha válida.', 'error');
-            return;
-        }
-
-        showMessage('Generando vista previa...', 'info');
-
-        try {
-            const url = `/api/memberships/reports/preview?period=${period}&date=${date}`;
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.error || 'No se pudo obtener la vista previa.');
-            if (data.noData) {
-                showMessage(data.message, 'warning');
-                return;
-            }
-            showResults(data);
-        } catch (error) {
-            showMessage(`Error: ${error.message}`, 'error');
-        }
-    }
-
-    // --- Event Listeners ---
-    periodOptions.forEach(option => {
-        option.addEventListener('click', function () {
-            currentPeriod = this.getAttribute('data-period');
-            periodOptions.forEach(opt => {
-                opt.classList.remove('bg-blue-500', 'text-white');
-            });
-            this.classList.add('bg-blue-500', 'text-white');
-
-            document.querySelectorAll('.date-selector').forEach(s => s.classList.add('hidden'));
-            document.getElementById(`${currentPeriod}-selector`).classList.remove('hidden');
-        });
+  /**
+   * Binds all necessary event listeners.
+   */
+  bindEvents() {
+    this.dom.periodOptions.forEach(option => {
+      option.addEventListener('click', (event) => this.handlePeriodChange(event));
     });
 
-    generateBtn.addEventListener('click', generateReportPreview);
+    if (this.dom.generateReportButton) {
+      this.dom.generateReportButton.addEventListener('click', () => this.generateReportPreview());
+    }
+  }
 
-    // --- Initialization ---
+  /**
+   * Sets the default values for date inputs to the current date.
+   */
+  initializeDateInputs() {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
-    document.getElementById('month-input').value = `${year}-${month}`;
-    document.getElementById('biweekly-month-input').value = `${year}-${month}`;
+
+    if (this.dom.monthInput) this.dom.monthInput.value = `${year}-${month}`;
+    if (this.dom.biweeklyMonthInput) this.dom.biweeklyMonthInput.value = `${year}-${month}`;
+
     const firstDayOfYear = new Date(year, 0, 1);
     const pastDaysOfYear = (today - firstDayOfYear) / 86400000;
     const week = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-    document.getElementById('week-input').value = `${year}-W${week.toString().padStart(2, '0')}`;
+    if (this.dom.weekInput) this.dom.weekInput.value = `${year}-W${String(week).padStart(2, '0')}`;
 
-    // Set initial active period without triggering click
-    const initialActive = document.querySelector('.period-option[data-period="monthly"]');
-    if(initialActive) {
-        initialActive.classList.add('bg-blue-500', 'text-white');
+    this.handleUrlErrors();
+    this.setActivePeriod(this.state.currentPeriod);
+  }
+
+  /**
+   * Handles switching between report periods (monthly, weekly, etc.).
+   * @param {Event} event - The click event from the period option.
+   */
+  handlePeriodChange(event) {
+    this.state.currentPeriod = event.currentTarget.dataset.period;
+    this.setActivePeriod(this.state.currentPeriod);
+  }
+
+  /**
+   * Updates the UI to show the correct date selector for the active period.
+   * @param {string} period - The currently selected period ('monthly', 'weekly', 'biweekly').
+   */
+  setActivePeriod(period) {
+      this.dom.periodOptions.forEach(opt => {
+        const isSelected = opt.dataset.period === period;
+        opt.classList.toggle('bg-blue-500', isSelected);
+        opt.classList.toggle('text-white', isSelected);
+      });
+
+      this.dom.dateSelectors.forEach(selector => {
+        selector.classList.toggle('hidden', selector.id !== `${period}-selector`);
+      });
+  }
+
+  /**
+   * Displays a message in the preview area.
+   * @param {string} text - The message to display.
+   * @param {'info'|'error'|'warning'} type - The type of message.
+   */
+  showMessage(text, type = 'info') {
+    this.dom.messageText.textContent = text;
+    const colorClasses = {
+      error: 'text-red-500',
+      warning: 'text-yellow-600',
+      info: 'text-gray-500',
+    };
+    this.dom.messageText.className = colorClasses[type] || colorClasses.info;
+    this.dom.messageArea.classList.remove('hidden');
+    this.dom.resultsTable.classList.add('hidden');
+  }
+
+  /**
+   * Displays the report results in the table.
+   * @param {object} data - The report data from the API.
+   */
+  showResults(data) {
+    const formatCurrency = (value) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
+
+    this.dom.cashAmount.textContent = formatCurrency(data.ingresos.efectivo);
+    this.dom.debitAmount.textContent = formatCurrency(data.ingresos.debito);
+    this.dom.creditAmount.textContent = formatCurrency(data.ingresos.credito);
+    this.dom.transferAmount.textContent = formatCurrency(data.ingresos.transferencia);
+    this.dom.totalAmount.textContent = formatCurrency(data.total);
+
+    const { period, date } = this.getReportParams();
+    this.dom.downloadPdfButton.href = `/api/memberships/reports/download?period=${period}&date=${date}`;
+
+    this.dom.messageArea.classList.add('hidden');
+    this.dom.resultsTable.classList.remove('hidden');
+  }
+
+  /**
+   * Gathers the current report parameters from the form.
+   * @returns {{period: string, date: string}} The report parameters.
+   */
+  getReportParams() {
+    let date;
+    switch (this.state.currentPeriod) {
+      case 'monthly':
+        date = this.dom.monthInput.value;
+        break;
+      case 'biweekly':
+        const month = this.dom.biweeklyMonthInput.value;
+        const fortnight = this.dom.fortnightSelect.value;
+        date = `${month}-${fortnight}`;
+        break;
+      case 'weekly':
+        const rawDate = this.dom.weekInput.value;
+        date = rawDate.replace('-W', 'W');
+        break;
+    }
+    return { period: this.state.currentPeriod, date };
+  }
+
+  /**
+   * Fetches the report preview data from the API and updates the UI.
+   */
+  async generateReportPreview() {
+    const { period, date } = this.getReportParams();
+    if (!date) {
+      this.showMessage('Please select a valid date.', 'error');
+      return;
     }
 
+    this.showMessage('Generating preview...', 'info');
 
+    try {
+      const url = `/api/memberships/reports/preview?period=${period}&date=${date}`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || 'Could not get preview.');
+      if (data.noData) {
+        this.showMessage(data.message, 'warning');
+        return;
+      }
+      this.showResults(data);
+    } catch (error) {
+      this.showMessage(`Error: ${error.message}`, 'error');
+    }
+  }
+
+  /**
+   * Checks for and displays any errors passed in the URL parameters.
+   */
+  handleUrlErrors() {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
-    if (error) {
-        notificationArea.innerHTML = `
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                    <strong class="font-bold">Error: </strong>
-                    <span class="block sm:inline">${decodeURIComponent(error)}</span>
-                </div>`;
-        window.history.replaceState({}, document.title, window.location.pathname);
+    if (error && this.dom.notificationArea) {
+      this.dom.notificationArea.innerHTML = `
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong class="font-bold">Error: </strong>
+            <span class="block sm:inline">${decodeURIComponent(error)}</span>
+        </div>`;
+      // Clean the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  new ReportManager();
 });
