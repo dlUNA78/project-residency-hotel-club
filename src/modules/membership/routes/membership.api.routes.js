@@ -50,6 +50,10 @@ routerApi.get("/details/:id", (req, res) =>
 // Verifica si un cliente existe por su teléfono o correo y devuelve el estado de su membresía.
 routerApi.post("/verify-client", bind(MembershipController, "verifyClient"));
 
+// POST /api/memberships/create-client
+// Crea un nuevo cliente y devuelve su ID.
+routerApi.post("/create-client", bind(MembershipController, "createClient"));
+
 
 // ===================================================================
 // RUTAS DE LA API DE REPORTES

@@ -82,11 +82,6 @@ routerMembership.post(
 // 3. RUTAS DE ACCIONES (FORMULARIOS) - Métodos POST, DELETE para CRUD
 // ===================================================================
 
-// POST: Crea un nuevo cliente (paso previo a crear la membresía).
-routerMembership.post(
-  "/createClient",
-  bind(MembershipController, "createClient")
-);
 // POST: Crea la membresía completa (contrato, activación, integrantes, etc.).
 routerMembership.post(
   "/createMembership",
