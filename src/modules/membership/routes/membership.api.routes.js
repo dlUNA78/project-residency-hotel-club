@@ -7,6 +7,7 @@
  */
 import express from "express";
 import { authMiddleware } from "../../login/middlewares/accessDenied.js";
+import { MembershipController } from "../controllers/createMemberController.js";
 import { listMembershipController } from "../controllers/listMemberController.js";
 import { reportsController } from "../controllers/reportsController.js";
 
@@ -44,6 +45,11 @@ routerApi.get("/:id_activa/integrantes", (req, res) =>
 routerApi.get("/details/:id", (req, res) =>
   listMembershipController.getMembershipDetailsAPI(req, res)
 );
+
+// POST /api/memberships/verify-client
+// Verifica si un cliente existe por su teléfono o correo y devuelve el estado de su membresía.
+routerApi.post("/verify-client", bind(MembershipController, "verifyClient"));
+
 
 // ===================================================================
 // RUTAS DE LA API DE REPORTES

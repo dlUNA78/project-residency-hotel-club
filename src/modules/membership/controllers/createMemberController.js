@@ -180,7 +180,7 @@ const MembershipController = {
       const pageData = await MembershipService.getDataForCreatePage();
 
       res.render("membershipCreate", {
-        title: "Crear Membresía",
+        title: "Crear Membesía",
         showFooter: true,
         isAdmin,
         userRole,
@@ -193,6 +193,23 @@ const MembershipController = {
           title: "Error",
           message: "Error al cargar la página de creación de membresía."
       });
+    }
+  },
+
+  /**
+   * Verifica si un cliente ya existe basado en su correo o teléfono
+   * y devuelve el estado de su membresía si la tuviera.
+   * @param {import('express').Request} req - El objeto de solicitud de Express.
+   * @param {import('express').Response} res - El objeto de respuesta de Express.
+   */
+  async verifyClient(req, res) {
+    try {
+      const { correo, telefono } = req.body;
+      const result = await ClientService.verifyClient({ correo, telefono });
+      res.json(result);
+    } catch (error) {
+      console.error("Error en verifyClient:", error);
+      res.status(500).json({ error: "Error al verificar el cliente", details: error.message });
     }
   },
 };

@@ -6,8 +6,12 @@
 const Validator = {
     rules: {
         nombre_completo: {
-            regex: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,50}$/,
-            message: 'El nombre debe contener letras y espacios (Un mínimo de 3 caracteres).'
+            regex: /^[A-Za-záéíóúÁÉÍÓÚñÑ\s]+$/,
+            message: 'El nombre solo debe contener letras y espacios.'
+        },
+        'integrantes[]': {
+            regex: /^[A-Za-záéíóúÁÉÍÓÚñÑ\s]+$/,
+            message: 'El nombre del integrante solo debe contener letras y espacios.'
         },
         telefono: {
             regex: /^\d{10}$/,
@@ -78,5 +82,49 @@ const Validator = {
         }
         // 5. Retorno: Devuelve el estado final de la validación del formulario.
         return isFormValid;
+    },
+
+    /**
+     * Inicializa la validación en tiempo real para un formulario.
+     * Añade listeners a los eventos 'input' de los campos con reglas definidas.
+     * @param {HTMLFormElement} form - El formulario para el cual activar la validación en tiempo real.
+     */
+    initRealTimeValidation: function(form) {
+        for (const fieldName in this.rules) {
+            const inputs = form.querySelectorAll(`[name="${fieldName}"]`);
+            inputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    this.validateField(input, this.rules[fieldName]);
+                });
+            });
+        }
+    },
+
+    /**
+     * Valida un campo individual y muestra u oculta el mensaje de error.
+     * @param {HTMLElement} input - El campo del formulario a validar.
+     * @param {object} rule - La regla de validación a aplicar.
+     */
+    validateField: function(input, rule) {
+        const value = input.value.trim();
+        let isFieldValid = false;
+
+        if (rule.regex) {
+            isFieldValid = rule.regex.test(value);
+        } else if (rule.validator) {
+            isFieldValid = rule.validator(value);
+        }
+
+        const errorContainer = input.nextElementSibling;
+        if (errorContainer && errorContainer.classList.contains('error-message')) {
+            if (!isFieldValid) {
+                errorContainer.textContent = rule.message;
+                errorContainer.classList.remove('hidden');
+                input.classList.add('border-red-500');
+            } else {
+                errorContainer.classList.add('hidden');
+                input.classList.remove('border-red-500');
+            }
+        }
     }
 };

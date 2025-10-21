@@ -483,6 +483,59 @@ const MembershipModel = {
       total: totalNeto,
     };
   },
+
+  async findClientByContact({ telefono, correo }) {
+    try {
+      // Buscar el cliente por teléfono o correo.
+      const [clientRows] = await pool.query(
+        `SELECT id_cliente, nombre_completo, correo, telefono
+         FROM clientes
+         WHERE telefono = ? OR correo = ?`,
+        [telefono, correo]
+      );
+
+      if (clientRows.length === 0) {
+        return null; // No se encontró el cliente.
+      }
+
+      const client = clientRows[0];
+
+      // Si se encuentra el cliente, buscar su última membresía activa.
+      const [membershipRows] = await pool.query(
+        `SELECT id_activa, estado, fecha_fin
+         FROM membresias_activas
+         WHERE id_cliente = ?
+         ORDER BY fecha_inicio DESC
+         LIMIT 1`,
+        [client.id_cliente]
+      );
+
+      if (membershipRows.length === 0) {
+        // El cliente existe pero no tiene membresías registradas.
+        return { client, membership: null };
+      }
+
+      const membership = membershipRows[0];
+
+      // Determinar el estado real (activo o inactivo) basado en la fecha de fin.
+      const hoy = new Date();
+      const fechaFin = new Date(membership.fecha_fin);
+
+      const estadoFinal = fechaFin >= hoy ? "Activa" : "Inactiva";
+
+
+      return {
+        client,
+        membership: {
+          id_activa: membership.id_activa,
+          estado: estadoFinal,
+        },
+      };
+    } catch (error) {
+      console.error("Error en findClientByContact del modelo:", error);
+      throw error;
+    }
+  },
 };
 
 export { MembershipModel };

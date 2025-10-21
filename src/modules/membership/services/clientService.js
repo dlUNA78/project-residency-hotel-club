@@ -37,5 +37,32 @@ export const ClientService = {
     
     // Devuelve solo la información necesaria al controlador.
     return { id_cliente };
+  },
+
+  /**
+   * Verifica la existencia de un cliente y el estado de su membresía.
+   * @async
+   * @param {object} contactData - Datos de contacto para la búsqueda.
+   * @param {string} contactData.telefono - Teléfono del cliente.
+   * @param {string} contactData.correo - Correo electrónico del cliente.
+   * @returns {Promise<object>} Un objeto con el resultado de la verificación.
+   */
+  async verifyClient(contactData) {
+    const { telefono, correo } = contactData;
+    const result = await MembershipModel.findClientByContact({ telefono, correo });
+
+    if (!result) {
+      return { status: "not_found" };
+    }
+
+    if (!result.membership) {
+      return { status: "client_exists", client: result.client };
+    }
+
+    if (result.membership.estado === "Activa") {
+      return { status: "active_membership", client: result.client, membership: result.membership };
+    } else {
+      return { status: "inactive_membership", client: result.client, membership: result.membership };
+    }
   }
 };
