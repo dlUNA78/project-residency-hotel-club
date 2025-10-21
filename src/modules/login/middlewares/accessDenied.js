@@ -12,7 +12,12 @@ export const authMiddleware = (req, res, next) => {
     req.user = req.session.user;
     next(); // Continúa con el controlador si está autenticado
   } else {
-    console.log("Usuario no autenticado. Redirigiendo al login.");
+    console.log("Usuario no autenticado.");
+    // Si la petición es para una API, responde con JSON.
+    if (req.originalUrl.startsWith('/api')) {
+      return res.status(401).json({ error: "Acceso no autorizado. Por favor, inicie sesión." });
+    }
+    // Si no, renderiza la página de acceso restringido.
     res.status(401).render("authMiddleware", {
       title: "Acceso Restringido",
       redirectUrl: "/", // Ruta a la que se redirigirá después de 5 segundos

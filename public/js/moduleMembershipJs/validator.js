@@ -6,15 +6,19 @@
 const Validator = {
     rules: {
         nombre_completo: {
-            regex: /^[A-Za-záéíóúÁÉÍÓÚñÑ\s]+$/,
+            regex: /^[A-Za-záéíóúÁÉÍÓÚñÑ\s]*$/,
+            filter: /[^A-Za-záéíóúÁÉÍÓÚñÑ\s]/g,
             message: 'El nombre solo debe contener letras y espacios.'
         },
         'integrantes[]': {
-            regex: /^[A-Za-záéíóúÁÉÍÓÚñÑ\s]+$/,
+            regex: /^[A-Za-záéíóúÁÉÍÓÚñÑ\s]*$/,
+            filter: /[^A-Za-záéíóúÁÉÍÓÚñÑ\s]/g,
             message: 'El nombre del integrante solo debe contener letras y espacios.'
         },
         telefono: {
-            regex: /^\d{10}$/,
+            regex: /^\d{0,10}$/,
+            filter: /[^0-9]/g,
+            maxLength: 10,
             message: 'El teléfono debe contener 10 dígitos.'
         },
         correo: {
@@ -106,11 +110,27 @@ const Validator = {
      * @param {object} rule - La regla de validación a aplicar.
      */
     validateField: function(input, rule) {
-        const value = input.value.trim();
-        let isFieldValid = false;
+        let value = input.value;
+        let isFieldValid = true;
 
+        // Filtrado en tiempo real
+        if (rule.filter) {
+            const originalValue = value;
+            value = value.replace(rule.filter, '');
+            if (originalValue !== value) {
+                input.value = value;
+            }
+        }
+
+        // Limitar longitud
+        if (rule.maxLength && value.length > rule.maxLength) {
+            value = value.slice(0, rule.maxLength);
+            input.value = value;
+        }
+
+        // Validación de formato
         if (rule.regex) {
-            isFieldValid = rule.regex.test(value);
+            isFieldValid = rule.regex.test(value) || value === '';
         } else if (rule.validator) {
             isFieldValid = rule.validator(value);
         }
