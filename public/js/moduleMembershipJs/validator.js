@@ -3,8 +3,22 @@
  * Está diseñado para ser reutilizable en cualquier formulario de la aplicación.
  * Sigue un patrón de módulo simple.
  */
-const Validator = {
-    rules: {
+export class Validator {
+    constructor(form, rules) {
+        this.form = form;
+        this.rules = rules;
+    }
+
+    initialize() {
+        this.form.addEventListener('submit', (e) => {
+            if (!this.validateForm()) {
+                e.preventDefault();
+                console.log("Validación fallida.");
+            }
+        });
+    }
+
+    static rules = {
         nombre_completo: {
             regex: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,50}$/,
             message: 'El nombre debe contener letras y espacios (Un mínimo de 3 caracteres).'
@@ -44,21 +58,32 @@ const Validator = {
     },
 
     /**
-     * Valida todos los campos de un formulario basándose en el objeto `rules`.
-     * Muestra u oculta mensajes de error directamente en el DOM.
-     * @param {HTMLFormElement} form - El formulario a validar.
-     * @returns {boolean} - True si el formulario es válido, de lo contrario false.
+     * Muestra un mensaje de error para un campo específico.
+     * @param {HTMLElement} input - El campo que tiene el error.
+     * @param {string} message - El mensaje de error a mostrar.
      */
-    validateForm: function (form) {
+    showFieldError(input, message) {
+        input.classList.add('border-red-500');
+        let errorContainer = input.nextElementSibling;
+
+        if (!errorContainer || !errorContainer.classList.contains('error-message')) {
+            errorContainer = document.createElement('div');
+            errorContainer.classList.add('error-message', 'text-red-600', 'text-sm', 'mt-1');
+            input.parentNode.insertBefore(errorContainer, input.nextSibling);
+        }
+
+        errorContainer.textContent = message;
+        errorContainer.classList.remove('hidden');
+    }
+
+    validateForm() {
         let isFormValid = true;
         
-        // 1. Limpieza: Antes de validar, oculta todos los mensajes de error existentes
-        // y elimina los estilos de borde rojo para empezar desde un estado limpio.
-        form.querySelectorAll('.error-message').forEach(el => el.classList.add('hidden'));
-        form.querySelectorAll('input, select').forEach(el => el.classList.remove('border-red-500'));
+        this.form.querySelectorAll('.error-message').forEach(el => el.classList.add('hidden'));
+        this.form.querySelectorAll('input, select').forEach(el => el.classList.remove('border-red-500'));
 
         for (const fieldName in this.rules) {
-            const inputs = form.querySelectorAll(`[name="${fieldName}"]`);
+            const inputs = this.form.querySelectorAll(`[name="${fieldName}"]`);
             if (inputs.length === 0) continue;
 
             inputs.forEach(input => {
@@ -73,43 +98,11 @@ const Validator = {
                 }
 
                 if (!isFieldValid) {
-                    // Los campos de integrantes no tienen un .nextElementSibling, el error se muestra en un contenedor general.
-                    // Para otros campos, se puede mantener la lógica del nextElementSibling si existe.
-                    let errorContainer = input.nextElementSibling;
-                    if (!errorContainer || !errorContainer.classList.contains('error-message')) {
-                        // Si no hay un contenedor de error específico, se puede buscar uno general o simplemente marcar el campo.
-                        // Por ahora, solo marcamos el campo y el mensaje se podría mostrar en `membershipMessage`.
-                         this.showFieldError(input, rule.message);
-                    } else {
-                         this.showFieldError(input, rule.message);
-                    }
+                    this.showFieldError(input, rule.message);
                     isFormValid = false;
                 }
             });
         }
-        // 5. Retorno: Devuelve el estado final de la validación del formulario.
         return isFormValid;
-    },
-
-    /**
-     * Muestra un mensaje de error para un campo específico.
-     * @param {HTMLElement} input - El campo que tiene el error.
-     * @param {string} message - El mensaje de error a mostrar.
-     */
-    showFieldError: function(input, message) {
-        input.classList.add('border-red-500');
-        let errorContainer = input.nextElementSibling;
-
-        // Si el contenedor de error no existe o no es el correcto, lo creamos.
-        // Esto es especialmente útil para campos dinámicos como los de integrantes.
-        if (!errorContainer || !errorContainer.classList.contains('error-message')) {
-            errorContainer = document.createElement('div');
-            errorContainer.classList.add('error-message', 'text-red-600', 'text-sm', 'mt-1');
-            // insertAfter
-            input.parentNode.insertBefore(errorContainer, input.nextSibling);
-        }
-
-        errorContainer.textContent = message;
-        errorContainer.classList.remove('hidden');
     }
-};
+}
