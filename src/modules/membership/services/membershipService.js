@@ -818,24 +818,31 @@ export const MembershipService = {
 
     // 3. Formatear los datos con la nueva lógica de estado
     const membresiasFormateadas = membresias.map((membresia) => {
-      const diasRestantes = membresia.dias_restantes;
-      const diasParaIniciar = membresia.dias_para_iniciar;
-
       let statusClass = '';
       let statusText = '';
 
-      if (diasParaIniciar > 0) {
-        statusClass = 'bg-blue-100 text-blue-800';
-        statusText = 'Programada';
-      } else if (diasRestantes <= 0) {
-        statusClass = 'bg-red-100 text-red-800';
-        statusText = 'Vencida';
-      } else if (diasRestantes <= 8) {
-        statusClass = 'bg-yellow-100 text-yellow-800';
-        statusText = 'Por Vencer';
+      // Prioridad 1: El estado de la base de datos.
+      if (membresia.estado !== 'Activa') {
+        statusText = membresia.estado; // Ej. "Inactiva", "Suspendida"
+        statusClass = 'bg-gray-200 text-gray-800';
       } else {
-        statusClass = 'bg-green-100 text-green-800';
-        statusText = 'Activa';
+        // Solo si el estado es 'Activa', calculamos por fecha.
+        const diasRestantes = membresia.dias_restantes;
+        const diasParaIniciar = membresia.dias_para_iniciar;
+
+        if (diasParaIniciar > 0) {
+          statusClass = 'bg-blue-100 text-blue-800';
+          statusText = 'Programada';
+        } else if (diasRestantes <= 0) {
+          statusClass = 'bg-red-100 text-red-800';
+          statusText = 'Vencida';
+        } else if (diasRestantes <= 8) {
+          statusClass = 'bg-yellow-100 text-yellow-800';
+          statusText = 'Por Vencer';
+        } else {
+          statusClass = 'bg-green-100 text-green-800';
+          statusText = 'Activa';
+        }
       }
 
       return {
@@ -1174,10 +1181,15 @@ export const MembershipService = {
     }
     const limit = 10; // Definir el número de registros por página
     const { logs, total } = await MembershipModel.getAccessLogByDate(date, page, limit);
-    
-    // Los logs ya vienen con el formato de fecha correcto desde la BD.
+
+    // Convertir fechas a formato ISO 8601 (UTC)
+    const formattedLogs = logs.map(log => ({
+      ...log,
+      fecha_hora_entrada: new Date(log.fecha_hora_entrada).toISOString()
+    }));
+
     return {
-      logs: logs,
+      logs: formattedLogs,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),

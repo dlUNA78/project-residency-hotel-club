@@ -573,7 +573,7 @@ const MembershipModel = {
       const [logs] = await pool.query(
         `SELECT
           re.id_entrada,
-          DATE_FORMAT(re.fecha_hora_entrada, '%Y-%m-%dT%H:%i:%s') AS fecha_hora_entrada,
+          re.fecha_hora_entrada,
           re.area_acceso,
           c.nombre_completo AS titular
         FROM registro_entradas re

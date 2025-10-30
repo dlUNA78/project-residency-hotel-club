@@ -34,15 +34,12 @@ const renderDates = () => {
     document.querySelectorAll('.fecha-local').forEach(celda => {
         const isoString = celda.dataset.timestamp;
         if (isoString) {
-            // La fecha viene del servidor en un formato que new Date() puede interpretar
-            // correctamente como la hora local del servidor (que es la de México).
-            const fecha = new Date(isoString);
+            const fechaUTC = new Date(isoString);
             const opciones = {
                 year: 'numeric', month: 'long', day: 'numeric',
                 hour: 'numeric', minute: 'numeric', hour12: true
             };
-            // Usamos toLocaleString para formatearla, pero sin conversión de zona horaria.
-            celda.textContent = fecha.toLocaleString('es-MX', opciones);
+            celda.textContent = fechaUTC.toLocaleString(undefined, opciones);
         }
     });
 };
